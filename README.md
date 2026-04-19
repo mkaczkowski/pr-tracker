@@ -9,20 +9,25 @@ macOS menu bar app for GitHub PR review triage: **Awaiting your review** and **R
 Official macOS zips are published on **[GitHub Releases](https://github.com/mkaczkowski/pr-tracker/releases)** (built by CI when a maintainer pushes a version tag—see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
 1. Download **PRTracker-macos-\*.zip** from the latest release and **double-click it** (Finder expands it; no Terminal needed).
-2. Drag **PRTracker.app** to **Applications** (or run it from the folder).
-3. **First launch (unsigned builds):** try **Control-click → Open → Open**. If macOS shows *“could not verify… malware”* with only **Close** / **Move to Trash**, that is normal for **not-notarized** apps. Do this next:
-   - Open **System Settings → Privacy & Security**, scroll to **Security**, find the message about PRTracker being blocked, and click **Open Anyway** (you may need to try launching once first so the button appears), **or**
-   - If you **trust this release** (e.g. you checked the SHA-256 on the release page), remove the download quarantine flag, then open again:
+2. Drag **PRTracker.app** to **Applications** (recommended before the next step).
 
-     ```bash
-     xattr -dr com.apple.quarantine /Applications/PRTracker.app
-     ```
+3. **Clear quarantine** so Gatekeeper allows the unsigned build (this is the reliable fix when macOS shows *“could not verify… malware”* with only **Close** / **Move to Trash**). Only do this if you **trust** this zip (ideally compare **SHA-256** with the release page first):
 
-     Adjust the path if the app is still in `Downloads`.
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/PRTracker.app
+   ```
 
-4. After launch, look in the **menu bar** (no Dock icon).
+   If the app is still in Downloads, use that path instead, for example:
 
-**Why this happens:** downloads from the web get **Gatekeeper** + **quarantine**. Our GitHub zip is **not Apple-notarized** (that requires a paid Developer ID + `notarize.sh`). Removing quarantine only dismisses the “downloaded from internet” flag—it does not magically verify malware; use it only for builds you trust.
+   ```bash
+   xattr -dr com.apple.quarantine ~/Downloads/PRTracker.app
+   ```
+
+4. Open **PRTracker** from Applications or Spotlight. After launch, look in the **menu bar** (no Dock icon).
+
+**Alternatives:** **Control-click → Open**, or **System Settings → Privacy & Security → Open Anyway** after a blocked launch—sometimes enough, but quarantine removal above matches what usually works when those options do not appear.
+
+**Why:** downloads get **quarantine**; our GitHub builds are **not Apple-notarized** (Developer ID + `notarize.sh` avoids this). Clearing quarantine removes the “downloaded from internet” flag only—it does not audit the app; use trusted releases only.
 
 Optional: verify the zip with `shasum -a 256` if a SHA-256 was published with the release.
 
