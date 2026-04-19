@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 
+@MainActor
 struct SettingsView: View {
     @Bindable var model: AppModel
 

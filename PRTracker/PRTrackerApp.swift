@@ -1,6 +1,7 @@
 import SwiftUI
 
 @main
+@MainActor
 struct PRTrackerApp: App {
     private static let settingsWindowID = "settings"
     private static let reminderWindowID = "reminder-editor"

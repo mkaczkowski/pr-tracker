@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 
+@MainActor
 struct MenuBarLabel: View {
     @Bindable var model: AppModel
     @Environment(\.openWindow) private var openWindow

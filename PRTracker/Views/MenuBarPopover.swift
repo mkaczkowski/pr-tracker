@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 
+@MainActor
 struct MenuBarPopover: View {
     @Bindable var model: AppModel
     @Environment(\.openWindow) private var openWindow

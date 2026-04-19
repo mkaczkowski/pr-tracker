@@ -1,5 +1,6 @@
 import SwiftUI
 
+@MainActor
 struct ReminderEditorWindow: View {
     @Bindable var model: AppModel
     @Environment(\.dismiss) private var dismiss
