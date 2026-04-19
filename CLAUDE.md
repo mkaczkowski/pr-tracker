@@ -139,6 +139,8 @@ fixture-driven test stays meaningful.
 
 ## Packaging
 
+- `scripts/package-unsigned.sh` builds Release with ad hoc signing, writes
+`build/PRTracker.app` and `build/PRTracker-macos-<version>-b<build>.zip`.
 - `scripts/notarize.sh <artifact>` wraps `xcrun notarytool submit --wait` and
 `xcrun stapler staple`. It requires `APPLE_TEAM_ID`, `APPLE_ID`, and
 `APPLE_APP_SPECIFIC_PASSWORD` in the environment.

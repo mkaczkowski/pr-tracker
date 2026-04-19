@@ -64,14 +64,14 @@ struct MenuBarPopover: View {
         HStack(alignment: .top, spacing: 10) {
             Label {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Pending reviews")
+                    Text("PR Tracker")
                         .font(.title3.weight(.semibold))
                     Text(headerSubtitle)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             } icon: {
-                Image(systemName: "eye.trianglebadge.exclamationmark")
+                Image(systemName: "arrow.triangle.pull")
                     .font(.title3)
                     .foregroundStyle(.tint)
             }
