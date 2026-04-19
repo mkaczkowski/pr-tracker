@@ -139,6 +139,8 @@ fixture-driven test stays meaningful.
 
 ## Packaging
 
+- `.github/workflows/release.yml` runs on push of tags `v*` and uploads the same
+zip produced by `scripts/package-unsigned.sh` to GitHub Releases.
 - `scripts/package-unsigned.sh` builds Release with ad hoc signing, writes
 `build/PRTracker.app` and `build/PRTracker-macos-<version>-b<build>.zip`.
 - `scripts/notarize.sh <artifact>` wraps `xcrun notarytool submit --wait` and
