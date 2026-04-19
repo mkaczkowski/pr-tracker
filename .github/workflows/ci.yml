@@ -1,0 +1,16 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: macos-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Run test suite
+        run: xcodebuild -project PRTracker.xcodeproj -scheme PRTracker -destination 'platform=macOS' test

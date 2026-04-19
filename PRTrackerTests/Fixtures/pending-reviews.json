@@ -1,0 +1,75 @@
+{
+  "user": "alice",
+  "host": "github.com",
+  "awaiting_review": [
+    {
+      "number": 101,
+      "title": "Refactor review pipeline",
+      "url": "https://github.com/acme/service/pull/101",
+      "updatedAt": "2026-04-19T11:00:00Z",
+      "repository": "acme/service",
+      "author": "bob",
+      "isDraft": false,
+      "latestReviewState": "AWAITING",
+      "approvals": 1,
+      "updatedSinceReview": true,
+      "isReReview": true,
+      "reviewRequestedAt": "2026-04-19T10:00:00Z",
+      "lastCommitDate": "2026-04-19T10:45:00Z"
+    }
+  ],
+  "reviewed_not_approved": [
+    {
+      "number": 55,
+      "title": "Update release checks",
+      "url": "https://github.com/acme/web/pull/55",
+      "updatedAt": "2026-04-18T14:00:00Z",
+      "repository": "acme/web",
+      "author": "eve",
+      "isDraft": false,
+      "latestReviewState": "COMMENTED",
+      "approvals": 0,
+      "updatedSinceReview": true,
+      "isReReview": false,
+      "reviewRequestedAt": "2026-04-18T12:00:00Z",
+      "lastCommitDate": "2026-04-18T12:30:00Z"
+    }
+  ],
+  "my_open_needing_attention": [
+    {
+      "number": 201,
+      "title": "Re-review owed after addressing comments",
+      "url": "https://github.com/acme/web/pull/201",
+      "updatedAt": "2026-04-19T09:00:00Z",
+      "repository": "acme/web",
+      "author": "alice",
+      "isDraft": false,
+      "latestReviewState": "COMMENTED",
+      "approvals": 0,
+      "updatedSinceReview": true,
+      "isReReview": false,
+      "reviewRequestedAt": null,
+      "lastCommitDate": "2026-04-19T08:45:00Z"
+    },
+    {
+      "number": 200,
+      "title": "Add metrics dashboard",
+      "url": "https://github.com/acme/service/pull/200",
+      "updatedAt": "2026-04-19T08:00:00Z",
+      "repository": "acme/service",
+      "author": "alice",
+      "isDraft": true,
+      "latestReviewState": "AWAITING",
+      "approvals": 0,
+      "updatedSinceReview": false,
+      "isReReview": false,
+      "reviewRequestedAt": null,
+      "lastCommitDate": "2026-04-19T07:30:00Z"
+    }
+  ],
+  "totals": {
+    "awaiting": 1,
+    "reviewed": 1
+  }
+}
+

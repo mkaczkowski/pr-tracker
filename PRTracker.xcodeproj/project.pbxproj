@@ -1,0 +1,565 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1A0000000000000000000060 /* PRTrackerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000030 /* PRTrackerApp.swift */; };
+		1A0000000000000000000061 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000031 /* AppModel.swift */; };
+		1A0000000000000000000062 /* PullRequestModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000033 /* PullRequestModels.swift */; };
+		1A0000000000000000000063 /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000034 /* AppSettings.swift */; };
+		1A0000000000000000000064 /* LoadState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000035 /* LoadState.swift */; };
+		1A0000000000000000000065 /* ProcessSpawning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000036 /* ProcessSpawning.swift */; };
+		1A0000000000000000000066 /* GHAuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000037 /* GHAuthService.swift */; };
+		1A0000000000000000000067 /* PendingReviewsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000038 /* PendingReviewsService.swift */; };
+		1A0000000000000000000068 /* ReviewBucketsBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000039 /* ReviewBucketsBuilder.swift */; };
+		1A0000000000000000000069 /* RefreshScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000003A /* RefreshScheduler.swift */; };
+		1A000000000000000000006A /* Reachability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000003B /* Reachability.swift */; };
+		1A000000000000000000006B /* SeenStateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000003C /* SeenStateStore.swift */; };
+		1A000000000000000000006C /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000003D /* NotificationService.swift */; };
+		1A000000000000000000006D /* LaunchAtLoginService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000003E /* LaunchAtLoginService.swift */; };
+		1A000000000000000000006E /* DateDecoding.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000003F /* DateDecoding.swift */; };
+		1A000000000000000000006F /* RelativeTime.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000040 /* RelativeTime.swift */; };
+		1A0000000000000000000070 /* LoggerCategories.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000041 /* LoggerCategories.swift */; };
+		1A0000000000000000000072 /* StatusPill.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000043 /* StatusPill.swift */; };
+		1A0000000000000000000073 /* ApprovalBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000044 /* ApprovalBadge.swift */; };
+		1A0000000000000000000074 /* PullRequestRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000045 /* PullRequestRow.swift */; };
+		1A0000000000000000000075 /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000046 /* EmptyStateView.swift */; };
+		1A0000000000000000000076 /* LoadingStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000047 /* LoadingStateView.swift */; };
+		1A0000000000000000000077 /* ErrorStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000048 /* ErrorStateView.swift */; };
+		1A0000000000000000000078 /* AuthStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000049 /* AuthStateView.swift */; };
+		1A0000000000000000000079 /* TruncationBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000004A /* TruncationBanner.swift */; };
+		1A000000000000000000007A /* MenuBarLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000004B /* MenuBarLabel.swift */; };
+		1A000000000000000000007B /* MenuBarPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000004C /* MenuBarPopover.swift */; };
+		1A000000000000000000007C /* PendingReviews.graphql in Resources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000004D /* PendingReviews.graphql */; };
+		1A00000000000000000000B1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000B0 /* Assets.xcassets */; };
+		1A000000000000000000007D /* ReviewBucketsBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000004E /* ReviewBucketsBuilderTests.swift */; };
+		1A000000000000000000007E /* RelativeTimeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000000000000000000004F /* RelativeTimeTests.swift */; };
+		1A000000000000000000007F /* GHAuthServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000050 /* GHAuthServiceTests.swift */; };
+		1A0000000000000000000081 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000000000000000000055 /* SettingsView.swift */; };
+		1A00000000000000000000A1 /* TitleParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000A0 /* TitleParser.swift */; };
+		1A00000000000000000000A3 /* TitleParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000A2 /* TitleParserTests.swift */; };
+		1A00000000000000000000A7 /* AppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000A6 /* AppModelTests.swift */; };
+		1A00000000000000000000A9 /* SeenStateStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000A8 /* SeenStateStoreTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		1A000000000000000000000F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1A0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1A0000000000000000000004;
+			remoteInfo = PRTracker;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		1A0000000000000000000020 /* PRTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PRTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1A0000000000000000000021 /* PRTrackerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PRTrackerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		1A0000000000000000000030 /* PRTrackerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PRTrackerApp.swift; sourceTree = "<group>"; };
+		1A0000000000000000000031 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		1A0000000000000000000032 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1A0000000000000000000033 /* PullRequestModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PullRequestModels.swift; sourceTree = "<group>"; };
+		1A0000000000000000000034 /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
+		1A0000000000000000000035 /* LoadState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadState.swift; sourceTree = "<group>"; };
+		1A0000000000000000000036 /* ProcessSpawning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessSpawning.swift; sourceTree = "<group>"; };
+		1A0000000000000000000037 /* GHAuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GHAuthService.swift; sourceTree = "<group>"; };
+		1A0000000000000000000038 /* PendingReviewsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingReviewsService.swift; sourceTree = "<group>"; };
+		1A0000000000000000000039 /* ReviewBucketsBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewBucketsBuilder.swift; sourceTree = "<group>"; };
+		1A000000000000000000003A /* RefreshScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RefreshScheduler.swift; sourceTree = "<group>"; };
+		1A000000000000000000003B /* Reachability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Reachability.swift; sourceTree = "<group>"; };
+		1A000000000000000000003C /* SeenStateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeenStateStore.swift; sourceTree = "<group>"; };
+		1A000000000000000000003D /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
+		1A000000000000000000003E /* LaunchAtLoginService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginService.swift; sourceTree = "<group>"; };
+		1A000000000000000000003F /* DateDecoding.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateDecoding.swift; sourceTree = "<group>"; };
+		1A0000000000000000000040 /* RelativeTime.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelativeTime.swift; sourceTree = "<group>"; };
+		1A0000000000000000000041 /* LoggerCategories.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoggerCategories.swift; sourceTree = "<group>"; };
+		1A0000000000000000000043 /* StatusPill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusPill.swift; sourceTree = "<group>"; };
+		1A0000000000000000000044 /* ApprovalBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalBadge.swift; sourceTree = "<group>"; };
+		1A0000000000000000000045 /* PullRequestRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PullRequestRow.swift; sourceTree = "<group>"; };
+		1A0000000000000000000046 /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
+		1A0000000000000000000047 /* LoadingStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingStateView.swift; sourceTree = "<group>"; };
+		1A0000000000000000000048 /* ErrorStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorStateView.swift; sourceTree = "<group>"; };
+		1A0000000000000000000049 /* AuthStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthStateView.swift; sourceTree = "<group>"; };
+		1A000000000000000000004A /* TruncationBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TruncationBanner.swift; sourceTree = "<group>"; };
+		1A000000000000000000004B /* MenuBarLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarLabel.swift; sourceTree = "<group>"; };
+		1A000000000000000000004C /* MenuBarPopover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPopover.swift; sourceTree = "<group>"; };
+		1A000000000000000000004D /* PendingReviews.graphql */ = {isa = PBXFileReference; lastKnownFileType = text; path = PendingReviews.graphql; sourceTree = "<group>"; };
+		1A000000000000000000004E /* ReviewBucketsBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewBucketsBuilderTests.swift; sourceTree = "<group>"; };
+		1A000000000000000000004F /* RelativeTimeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelativeTimeTests.swift; sourceTree = "<group>"; };
+		1A0000000000000000000050 /* GHAuthServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GHAuthServiceTests.swift; sourceTree = "<group>"; };
+		1A0000000000000000000051 /* pending-reviews.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "pending-reviews.json"; sourceTree = "<group>"; };
+		1A0000000000000000000052 /* graphql-response.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "graphql-response.json"; sourceTree = "<group>"; };
+		1A0000000000000000000053 /* notarize.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = notarize.sh; sourceTree = "<group>"; };
+		1A0000000000000000000054 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		1A0000000000000000000055 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		1A00000000000000000000A0 /* TitleParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TitleParser.swift; sourceTree = "<group>"; };
+		1A00000000000000000000A2 /* TitleParserTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TitleParserTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000000A6 /* AppModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000000A8 /* SeenStateStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeenStateStoreTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000000B0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		1A000000000000000000000A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1A000000000000000000000D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1A0000000000000000000002 = {
+			isa = PBXGroup;
+			children = (
+				1A0000000000000000000022 /* PRTracker */,
+				1A0000000000000000000028 /* PRTrackerTests */,
+				1A000000000000000000002A /* scripts */,
+				1A0000000000000000000054 /* README.md */,
+				1A0000000000000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		1A0000000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000000000000000000020 /* PRTracker.app */,
+				1A0000000000000000000021 /* PRTrackerTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		1A0000000000000000000022 /* PRTracker */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000000000000000000030 /* PRTrackerApp.swift */,
+				1A0000000000000000000031 /* AppModel.swift */,
+				1A0000000000000000000032 /* Info.plist */,
+				1A00000000000000000000B0 /* Assets.xcassets */,
+				1A0000000000000000000023 /* Models */,
+				1A0000000000000000000024 /* Services */,
+				1A0000000000000000000025 /* Utilities */,
+				1A0000000000000000000026 /* Views */,
+				1A0000000000000000000027 /* Resources */,
+			);
+			path = PRTracker;
+			sourceTree = "<group>";
+		};
+		1A0000000000000000000023 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000000000000000000033 /* PullRequestModels.swift */,
+				1A0000000000000000000034 /* AppSettings.swift */,
+				1A0000000000000000000035 /* LoadState.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		1A0000000000000000000024 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000000000000000000036 /* ProcessSpawning.swift */,
+				1A0000000000000000000037 /* GHAuthService.swift */,
+				1A0000000000000000000038 /* PendingReviewsService.swift */,
+				1A0000000000000000000039 /* ReviewBucketsBuilder.swift */,
+				1A000000000000000000003A /* RefreshScheduler.swift */,
+				1A000000000000000000003B /* Reachability.swift */,
+				1A000000000000000000003C /* SeenStateStore.swift */,
+				1A000000000000000000003D /* NotificationService.swift */,
+				1A000000000000000000003E /* LaunchAtLoginService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		1A0000000000000000000025 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				1A000000000000000000003F /* DateDecoding.swift */,
+				1A0000000000000000000040 /* RelativeTime.swift */,
+				1A0000000000000000000041 /* LoggerCategories.swift */,
+				1A00000000000000000000A0 /* TitleParser.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		1A0000000000000000000026 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000000000000000000043 /* StatusPill.swift */,
+				1A0000000000000000000044 /* ApprovalBadge.swift */,
+				1A0000000000000000000045 /* PullRequestRow.swift */,
+				1A0000000000000000000046 /* EmptyStateView.swift */,
+				1A0000000000000000000047 /* LoadingStateView.swift */,
+				1A0000000000000000000048 /* ErrorStateView.swift */,
+				1A0000000000000000000049 /* AuthStateView.swift */,
+				1A000000000000000000004A /* TruncationBanner.swift */,
+				1A000000000000000000004B /* MenuBarLabel.swift */,
+				1A000000000000000000004C /* MenuBarPopover.swift */,
+				1A0000000000000000000055 /* SettingsView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		1A0000000000000000000027 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				1A000000000000000000004D /* PendingReviews.graphql */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		1A0000000000000000000028 /* PRTrackerTests */ = {
+			isa = PBXGroup;
+			children = (
+				1A000000000000000000004E /* ReviewBucketsBuilderTests.swift */,
+				1A000000000000000000004F /* RelativeTimeTests.swift */,
+				1A0000000000000000000050 /* GHAuthServiceTests.swift */,
+				1A00000000000000000000A6 /* AppModelTests.swift */,
+				1A00000000000000000000A8 /* SeenStateStoreTests.swift */,
+				1A00000000000000000000A2 /* TitleParserTests.swift */,
+				1A0000000000000000000029 /* Fixtures */,
+			);
+			path = PRTrackerTests;
+			sourceTree = "<group>";
+		};
+		1A0000000000000000000029 /* Fixtures */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000000000000000000051 /* pending-reviews.json */,
+				1A0000000000000000000052 /* graphql-response.json */,
+			);
+			path = Fixtures;
+			sourceTree = "<group>";
+		};
+		1A000000000000000000002A /* scripts */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000000000000000000053 /* notarize.sh */,
+			);
+			path = scripts;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		1A0000000000000000000004 /* PRTracker */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1A0000000000000000000006 /* Build configuration list for PBXNativeTarget "PRTracker" */;
+			buildPhases = (
+				1A0000000000000000000009 /* Sources */,
+				1A000000000000000000000A /* Frameworks */,
+				1A000000000000000000000B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = PRTracker;
+			packageProductDependencies = (
+			);
+			productName = PRTracker;
+			productReference = 1A0000000000000000000020 /* PRTracker.app */;
+			productType = "com.apple.product-type.application";
+		};
+		1A0000000000000000000005 /* PRTrackerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1A0000000000000000000007 /* Build configuration list for PBXNativeTarget "PRTrackerTests" */;
+			buildPhases = (
+				1A000000000000000000000C /* Sources */,
+				1A000000000000000000000D /* Frameworks */,
+				1A000000000000000000000E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				1A0000000000000000000010 /* PBXTargetDependency */,
+			);
+			name = PRTrackerTests;
+			productName = PRTrackerTests;
+			productReference = 1A0000000000000000000021 /* PRTrackerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		1A0000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					1A0000000000000000000004 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					1A0000000000000000000005 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = 1A0000000000000000000004;
+					};
+				};
+			};
+			buildConfigurationList = 1A0000000000000000000008 /* Build configuration list for PBXProject "PRTracker" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 1A0000000000000000000002;
+			packageReferences = (
+			);
+			productRefGroup = 1A0000000000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				1A0000000000000000000004 /* PRTracker */,
+				1A0000000000000000000005 /* PRTrackerTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		1A000000000000000000000B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1A000000000000000000007C /* PendingReviews.graphql in Resources */,
+				1A00000000000000000000B1 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1A000000000000000000000E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		1A0000000000000000000009 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1A0000000000000000000060 /* PRTrackerApp.swift in Sources */,
+				1A0000000000000000000061 /* AppModel.swift in Sources */,
+				1A0000000000000000000062 /* PullRequestModels.swift in Sources */,
+				1A0000000000000000000063 /* AppSettings.swift in Sources */,
+				1A0000000000000000000064 /* LoadState.swift in Sources */,
+				1A0000000000000000000065 /* ProcessSpawning.swift in Sources */,
+				1A0000000000000000000066 /* GHAuthService.swift in Sources */,
+				1A0000000000000000000067 /* PendingReviewsService.swift in Sources */,
+				1A0000000000000000000068 /* ReviewBucketsBuilder.swift in Sources */,
+				1A0000000000000000000069 /* RefreshScheduler.swift in Sources */,
+				1A000000000000000000006A /* Reachability.swift in Sources */,
+				1A000000000000000000006B /* SeenStateStore.swift in Sources */,
+				1A000000000000000000006C /* NotificationService.swift in Sources */,
+				1A000000000000000000006D /* LaunchAtLoginService.swift in Sources */,
+				1A000000000000000000006E /* DateDecoding.swift in Sources */,
+				1A000000000000000000006F /* RelativeTime.swift in Sources */,
+				1A0000000000000000000070 /* LoggerCategories.swift in Sources */,
+				1A0000000000000000000072 /* StatusPill.swift in Sources */,
+				1A0000000000000000000073 /* ApprovalBadge.swift in Sources */,
+				1A0000000000000000000074 /* PullRequestRow.swift in Sources */,
+				1A0000000000000000000075 /* EmptyStateView.swift in Sources */,
+				1A0000000000000000000076 /* LoadingStateView.swift in Sources */,
+				1A0000000000000000000077 /* ErrorStateView.swift in Sources */,
+				1A0000000000000000000078 /* AuthStateView.swift in Sources */,
+				1A0000000000000000000079 /* TruncationBanner.swift in Sources */,
+				1A000000000000000000007A /* MenuBarLabel.swift in Sources */,
+				1A000000000000000000007B /* MenuBarPopover.swift in Sources */,
+				1A0000000000000000000081 /* SettingsView.swift in Sources */,
+				1A00000000000000000000A1 /* TitleParser.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1A000000000000000000000C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1A000000000000000000007D /* ReviewBucketsBuilderTests.swift in Sources */,
+				1A000000000000000000007E /* RelativeTimeTests.swift in Sources */,
+				1A000000000000000000007F /* GHAuthServiceTests.swift in Sources */,
+				1A00000000000000000000A7 /* AppModelTests.swift in Sources */,
+				1A00000000000000000000A9 /* SeenStateStoreTests.swift in Sources */,
+				1A00000000000000000000A3 /* TitleParserTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		1A0000000000000000000010 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1A0000000000000000000004 /* PRTracker */;
+			targetProxy = 1A000000000000000000000F /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		1A0000000000000000000011 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		1A0000000000000000000012 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		1A0000000000000000000013 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				EMIT_FRONTEND_COMMAND_LINES = YES;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_TESTABILITY = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = PRTracker/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.PRTracker;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		1A0000000000000000000014 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = PRTracker/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.PRTracker;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		1A0000000000000000000015 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				EMIT_FRONTEND_COMMAND_LINES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.PRTrackerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PRTracker.app/Contents/MacOS/PRTracker";
+			};
+			name = Debug;
+		};
+		1A0000000000000000000016 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.PRTrackerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PRTracker.app/Contents/MacOS/PRTracker";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1A0000000000000000000006 /* Build configuration list for PBXNativeTarget "PRTracker" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A0000000000000000000013 /* Debug */,
+				1A0000000000000000000014 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1A0000000000000000000007 /* Build configuration list for PBXNativeTarget "PRTrackerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A0000000000000000000015 /* Debug */,
+				1A0000000000000000000016 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1A0000000000000000000008 /* Build configuration list for PBXProject "PRTracker" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A0000000000000000000011 /* Debug */,
+				1A0000000000000000000012 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+	};
+	rootObject = 1A0000000000000000000001 /* Project object */;
+}
+

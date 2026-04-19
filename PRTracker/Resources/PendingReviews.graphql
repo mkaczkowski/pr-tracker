@@ -1,0 +1,62 @@
+query($qAwaiting: String!, $qReviewed: String!, $qMyOpen: String!, $n: Int!) {
+  viewer { login }
+  awaiting: search(type: ISSUE, query: $qAwaiting, first: $n) {
+    issueCount
+    nodes { ... on PullRequest {
+      number title url updatedAt isDraft
+      author { login }
+      repository { nameWithOwner }
+      reviews(last: 50) {
+        nodes { state submittedAt author { login } }
+      }
+      commits(last: 1) {
+        nodes { commit { committedDate } }
+      }
+      timelineItems(last: 20, itemTypes: [REVIEW_REQUESTED_EVENT]) {
+        nodes {
+          ... on ReviewRequestedEvent {
+            createdAt
+            requestedReviewer { ... on User { login } }
+          }
+        }
+      }
+    }}
+  }
+  reviewed: search(type: ISSUE, query: $qReviewed, first: $n) {
+    issueCount
+    nodes { ... on PullRequest {
+      number title url updatedAt isDraft
+      author { login }
+      repository { nameWithOwner }
+      reviews(last: 50) {
+        nodes { state submittedAt author { login } }
+      }
+      commits(last: 1) {
+        nodes { commit { committedDate } }
+      }
+      timelineItems(last: 20, itemTypes: [REVIEW_REQUESTED_EVENT]) {
+        nodes {
+          ... on ReviewRequestedEvent {
+            createdAt
+            requestedReviewer { ... on User { login } }
+          }
+        }
+      }
+    }}
+  }
+  myOpen: search(type: ISSUE, query: $qMyOpen, first: $n) {
+    issueCount
+    nodes { ... on PullRequest {
+      number title url updatedAt isDraft
+      author { login }
+      repository { nameWithOwner }
+      reviews(last: 50) {
+        nodes { state submittedAt author { login } }
+      }
+      commits(last: 1) {
+        nodes { commit { committedDate } }
+      }
+    }}
+  }
+}
+
