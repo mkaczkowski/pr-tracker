@@ -196,10 +196,181 @@ final class AppModelTests: XCTestCase {
         XCTAssertEqual(pending.fetchCallCount, 0)
     }
 
+    func testCanSetReminderRejectsAuthoredAndMyOpenContext() {
+        let model = makeModel(
+            pendingReviewsService: StubPendingReviewsService(result: .success(.init(buckets: makeBuckets(), rateLimitRemaining: nil)))
+        )
+
+        let reviewerPR = makePullRequest(number: 40, isDraft: false, author: "bob")
+        let authoredByMe = makePullRequest(number: 41, isDraft: false, author: "alice")
+        model.buckets = ReviewBuckets(
+            user: "alice",
+            host: "github.com",
+            awaitingReview: [reviewerPR, authoredByMe],
+            reviewedNotApproved: [],
+            myOpenNeedingAttention: [authoredByMe],
+            totals: BucketTotals(awaiting: 2, reviewed: 0),
+            awaitingTruncated: false,
+            reviewedTruncated: false,
+            myOpenTruncated: false
+        )
+
+        XCTAssertTrue(model.canSetReminder(for: reviewerPR, context: .awaitingReview))
+        XCTAssertFalse(model.canSetReminder(for: authoredByMe, context: .awaitingReview))
+        XCTAssertFalse(model.canSetReminder(for: authoredByMe, context: .myOpenNeedingAttention))
+    }
+
+    func testDueReminderPostsNotificationAndClearsReminder() async {
+        defaults.set(true, forKey: AppSettings.Keys.notificationsEnabled)
+        let buckets = makeBuckets()
+        let pending = StubPendingReviewsService(result: .success(.init(buckets: buckets, rateLimitRemaining: nil)))
+        let notifications = StubNotificationService()
+        let reminderStore = StubReminderStore()
+        let reminderScheduler = StubReminderScheduler()
+        let model = makeModel(
+            pendingReviewsService: pending,
+            notificationService: notifications,
+            reminderStore: reminderStore,
+            reminderScheduler: reminderScheduler
+        )
+        model.buckets = buckets
+
+        let pullRequest = buckets.awaitingReview[0]
+        model.setReminder(
+            for: pullRequest,
+            context: .awaitingReview,
+            at: Date().addingTimeInterval(120)
+        )
+        try? await Task.sleep(nanoseconds: 80_000_000)
+        guard let reminder = model.reminder(for: pullRequest) else {
+            return XCTFail("Expected reminder to be set")
+        }
+
+        await reminderScheduler.triggerDue([reminder])
+        try? await Task.sleep(nanoseconds: 80_000_000)
+
+        XCTAssertNil(model.reminder(for: pullRequest))
+        XCTAssertEqual(notifications.postedReminderIDs, [[reminder.id]])
+        let removedAfterDelivery = await reminderStore.removedKeys
+        XCTAssertTrue(removedAfterDelivery.contains(reminder.key))
+    }
+
+    func testDueReminderStaysPendingWhenNotificationsDisabled() async {
+        defaults.set(false, forKey: AppSettings.Keys.notificationsEnabled)
+        let buckets = makeBuckets()
+        let pending = StubPendingReviewsService(result: .success(.init(buckets: buckets, rateLimitRemaining: nil)))
+        let notifications = StubNotificationService()
+        let reminderStore = StubReminderStore()
+        let reminderScheduler = StubReminderScheduler()
+        let model = makeModel(
+            pendingReviewsService: pending,
+            notificationService: notifications,
+            reminderStore: reminderStore,
+            reminderScheduler: reminderScheduler
+        )
+        model.buckets = buckets
+
+        let pullRequest = buckets.awaitingReview[0]
+        model.setReminder(
+            for: pullRequest,
+            context: .awaitingReview,
+            at: Date().addingTimeInterval(120)
+        )
+        try? await Task.sleep(nanoseconds: 80_000_000)
+        guard let reminder = model.reminder(for: pullRequest) else {
+            return XCTFail("Expected reminder to be set")
+        }
+
+        await reminderScheduler.triggerDue([reminder])
+        try? await Task.sleep(nanoseconds: 80_000_000)
+
+        XCTAssertNotNil(model.reminder(for: pullRequest))
+        XCTAssertTrue(notifications.postedReminderIDs.isEmpty)
+        let removedWithNotificationsOff = await reminderStore.removedKeys
+        XCTAssertFalse(removedWithNotificationsOff.contains(reminder.key))
+    }
+
+    func testRefreshRemovesReminderWhenPRNoLongerEligible() async {
+        defaults.set(true, forKey: AppSettings.Keys.notificationsEnabled)
+        let initialBuckets = makeBuckets()
+        let emptyBuckets = ReviewBuckets(
+            user: "alice",
+            host: "github.com",
+            awaitingReview: [],
+            reviewedNotApproved: [],
+            myOpenNeedingAttention: [],
+            totals: BucketTotals(awaiting: 0, reviewed: 0),
+            awaitingTruncated: false,
+            reviewedTruncated: false,
+            myOpenTruncated: false
+        )
+        let pending = SequencedPendingReviewsService(results: [
+            .success(.init(buckets: initialBuckets, rateLimitRemaining: nil)),
+            .success(.init(buckets: emptyBuckets, rateLimitRemaining: nil))
+        ])
+        let reminderStore = StubReminderStore()
+        let reminderScheduler = StubReminderScheduler()
+        let model = makeModel(
+            pendingReviewsService: pending,
+            reminderStore: reminderStore,
+            reminderScheduler: reminderScheduler
+        )
+
+        _ = await model.refresh(reason: "initial")
+        let pullRequest = initialBuckets.awaitingReview[0]
+        model.setReminder(
+            for: pullRequest,
+            context: .awaitingReview,
+            at: Date().addingTimeInterval(120)
+        )
+        try? await Task.sleep(nanoseconds: 80_000_000)
+        XCTAssertNotNil(model.reminder(for: pullRequest))
+
+        _ = await model.refresh(reason: "pr-removed")
+        XCTAssertNil(model.reminder(for: pullRequest))
+        let removedAfterReconcile = await reminderStore.removedKeys
+        XCTAssertTrue(removedAfterReconcile.contains(pullRequest.reminderKey(host: "github.com")))
+    }
+
+    func testDueReminderDoesNotPostTwiceForRepeatedDueCallbacks() async {
+        defaults.set(true, forKey: AppSettings.Keys.notificationsEnabled)
+        let buckets = makeBuckets()
+        let pending = StubPendingReviewsService(result: .success(.init(buckets: buckets, rateLimitRemaining: nil)))
+        let notifications = StubNotificationService()
+        let reminderStore = StubReminderStore()
+        let reminderScheduler = StubReminderScheduler()
+        let model = makeModel(
+            pendingReviewsService: pending,
+            notificationService: notifications,
+            reminderStore: reminderStore,
+            reminderScheduler: reminderScheduler
+        )
+        model.buckets = buckets
+
+        let pullRequest = buckets.awaitingReview[0]
+        model.setReminder(
+            for: pullRequest,
+            context: .awaitingReview,
+            at: Date().addingTimeInterval(120)
+        )
+        try? await Task.sleep(nanoseconds: 80_000_000)
+        guard let reminder = model.reminder(for: pullRequest) else {
+            return XCTFail("Expected reminder to be set")
+        }
+
+        await reminderScheduler.triggerDue([reminder])
+        await reminderScheduler.triggerDue([reminder])
+        try? await Task.sleep(nanoseconds: 80_000_000)
+
+        XCTAssertEqual(notifications.postedReminderIDs.count, 1)
+    }
+
     private func makeModel(
         pendingReviewsService: any PendingReviewsServing,
         seenStateStore: (any SeenStateStoring)? = nil,
-        notificationService: (any NotificationServing)? = nil
+        notificationService: (any NotificationServing)? = nil,
+        reminderStore: (any ReminderStoring)? = nil,
+        reminderScheduler: (any ReminderScheduling)? = nil
     ) -> AppModel {
         AppModel(
             userDefaults: defaults,
@@ -207,6 +378,8 @@ final class AppModelTests: XCTestCase {
             refreshScheduler: RefreshScheduler(minimumIntervalSeconds: 0.01, maximumBackoffSeconds: 0.05),
             seenStateStore: seenStateStore ?? StubSeenStateStore(diff: SeenStateDiff(newlyAwaiting: [], newlyUpdatedSinceReview: [])),
             notificationService: notificationService ?? StubNotificationService(),
+            reminderStore: reminderStore ?? StubReminderStore(),
+            reminderScheduler: reminderScheduler ?? StubReminderScheduler(),
             launchAtLoginService: StubLaunchAtLoginService(),
             reachability: StubReachability(),
             sleepWakeObserver: StubSleepWakeObserver()
@@ -227,14 +400,14 @@ final class AppModelTests: XCTestCase {
         )
     }
 
-    private func makePullRequest(number: Int, isDraft: Bool) -> PullRequest {
+    private func makePullRequest(number: Int, isDraft: Bool, author: String = "bob") -> PullRequest {
         PullRequest(
             number: number,
             title: "Add tests",
             url: URL(string: "https://github.com/acme/repo/pull/\(number)"),
             updatedAt: Date(timeIntervalSince1970: 1_000),
             repository: "acme/repo",
-            author: "bob",
+            author: author,
             isDraft: isDraft,
             latestReviewState: .awaiting,
             approvals: 1,
@@ -338,6 +511,8 @@ private final class StubSeenStateStore: SeenStateStoring {
 private final class StubNotificationService: NotificationServing {
     private(set) var requestAuthorizationCount = 0
     private(set) var postedEnabledValues: [Bool] = []
+    private(set) var postedReminderEnabledValues: [Bool] = []
+    private(set) var postedReminderIDs: [[String]] = []
 
     func requestAuthorizationIfNeeded() async {
         requestAuthorizationCount += 1
@@ -345,6 +520,63 @@ private final class StubNotificationService: NotificationServing {
 
     func postNotifications(from diff: SeenStateDiff, enabled: Bool) async {
         postedEnabledValues.append(enabled)
+    }
+
+    func postReminderNotifications(_ reminders: [PullRequestReminder], enabled: Bool) async {
+        postedReminderEnabledValues.append(enabled)
+        postedReminderIDs.append(reminders.map(\.id))
+    }
+}
+
+private actor StubReminderStore: ReminderStoring {
+    private var remindersByKey: [PullRequestReminderKey: PullRequestReminder]
+    private(set) var removedKeys: Set<PullRequestReminderKey> = []
+
+    init(initialReminders: [PullRequestReminder] = []) {
+        remindersByKey = Dictionary(uniqueKeysWithValues: initialReminders.map { ($0.key, $0) })
+    }
+
+    func loadReminders() -> [PullRequestReminder] {
+        Array(remindersByKey.values)
+    }
+
+    func upsert(_ reminder: PullRequestReminder) {
+        remindersByKey[reminder.key] = reminder
+    }
+
+    func removeReminder(for key: PullRequestReminderKey) {
+        remindersByKey.removeValue(forKey: key)
+        removedKeys.insert(key)
+    }
+
+    func removeReminders(for keys: Set<PullRequestReminderKey>) {
+        for key in keys {
+            remindersByKey.removeValue(forKey: key)
+        }
+        removedKeys.formUnion(keys)
+    }
+}
+
+private actor StubReminderScheduler: ReminderScheduling {
+    private var onDue: (@Sendable ([PullRequestReminder]) async -> Void)?
+
+    func update(
+        reminders: [PullRequestReminder],
+        now: Date,
+        onDue: @escaping @Sendable ([PullRequestReminder]) async -> Void
+    ) {
+        _ = reminders
+        _ = now
+        self.onDue = onDue
+    }
+
+    func stop() {
+        onDue = nil
+    }
+
+    func triggerDue(_ reminders: [PullRequestReminder]) async {
+        guard let onDue else { return }
+        await onDue(reminders)
     }
 }
 

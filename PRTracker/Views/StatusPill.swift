@@ -10,9 +10,9 @@ struct StatusPill: View {
     let state: DisplayState
     var body: some View {
         Text(state.label)
-            .font(.caption2.weight(.medium))
-            .padding(.horizontal, 7)
-            .padding(.vertical, 2)
+            .font(.subheadline.weight(.semibold))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
             .foregroundStyle(tint)
             .background(tint.opacity(backgroundOpacity))
             .clipShape(Capsule())

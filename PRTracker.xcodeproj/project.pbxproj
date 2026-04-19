@@ -44,6 +44,11 @@
 		1A00000000000000000000A3 /* TitleParserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000A2 /* TitleParserTests.swift */; };
 		1A00000000000000000000A7 /* AppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000A6 /* AppModelTests.swift */; };
 		1A00000000000000000000A9 /* SeenStateStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000A8 /* SeenStateStoreTests.swift */; };
+		1A00000000000000000000B6 /* ReminderStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000B2 /* ReminderStore.swift */; };
+		1A00000000000000000000B7 /* ReminderScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000B3 /* ReminderScheduler.swift */; };
+		1A00000000000000000000B8 /* ReminderStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000B4 /* ReminderStoreTests.swift */; };
+		1A00000000000000000000B9 /* ReminderSchedulerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000B5 /* ReminderSchedulerTests.swift */; };
+		1A00000000000000000000BA /* ReminderEditorWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000000000000000000BB /* ReminderEditorWindow.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -101,6 +106,11 @@
 		1A00000000000000000000A6 /* AppModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelTests.swift; sourceTree = "<group>"; };
 		1A00000000000000000000A8 /* SeenStateStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeenStateStoreTests.swift; sourceTree = "<group>"; };
 		1A00000000000000000000B0 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		1A00000000000000000000B2 /* ReminderStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderStore.swift; sourceTree = "<group>"; };
+		1A00000000000000000000B3 /* ReminderScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderScheduler.swift; sourceTree = "<group>"; };
+		1A00000000000000000000B4 /* ReminderStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderStoreTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000000B5 /* ReminderSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderSchedulerTests.swift; sourceTree = "<group>"; };
+		1A00000000000000000000BB /* ReminderEditorWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderEditorWindow.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -178,6 +188,8 @@
 				1A000000000000000000003B /* Reachability.swift */,
 				1A000000000000000000003C /* SeenStateStore.swift */,
 				1A000000000000000000003D /* NotificationService.swift */,
+				1A00000000000000000000B2 /* ReminderStore.swift */,
+				1A00000000000000000000B3 /* ReminderScheduler.swift */,
 				1A000000000000000000003E /* LaunchAtLoginService.swift */,
 			);
 			path = Services;
@@ -208,6 +220,7 @@
 				1A000000000000000000004B /* MenuBarLabel.swift */,
 				1A000000000000000000004C /* MenuBarPopover.swift */,
 				1A0000000000000000000055 /* SettingsView.swift */,
+				1A00000000000000000000BB /* ReminderEditorWindow.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -229,6 +242,8 @@
 				1A00000000000000000000A6 /* AppModelTests.swift */,
 				1A00000000000000000000A8 /* SeenStateStoreTests.swift */,
 				1A00000000000000000000A2 /* TitleParserTests.swift */,
+				1A00000000000000000000B4 /* ReminderStoreTests.swift */,
+				1A00000000000000000000B5 /* ReminderSchedulerTests.swift */,
 				1A0000000000000000000029 /* Fixtures */,
 			);
 			path = PRTrackerTests;
@@ -368,6 +383,8 @@
 				1A000000000000000000006A /* Reachability.swift in Sources */,
 				1A000000000000000000006B /* SeenStateStore.swift in Sources */,
 				1A000000000000000000006C /* NotificationService.swift in Sources */,
+				1A00000000000000000000B6 /* ReminderStore.swift in Sources */,
+				1A00000000000000000000B7 /* ReminderScheduler.swift in Sources */,
 				1A000000000000000000006D /* LaunchAtLoginService.swift in Sources */,
 				1A000000000000000000006E /* DateDecoding.swift in Sources */,
 				1A000000000000000000006F /* RelativeTime.swift in Sources */,
@@ -383,6 +400,7 @@
 				1A000000000000000000007A /* MenuBarLabel.swift in Sources */,
 				1A000000000000000000007B /* MenuBarPopover.swift in Sources */,
 				1A0000000000000000000081 /* SettingsView.swift in Sources */,
+				1A00000000000000000000BA /* ReminderEditorWindow.swift in Sources */,
 				1A00000000000000000000A1 /* TitleParser.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -397,6 +415,8 @@
 				1A00000000000000000000A7 /* AppModelTests.swift in Sources */,
 				1A00000000000000000000A9 /* SeenStateStoreTests.swift in Sources */,
 				1A00000000000000000000A3 /* TitleParserTests.swift in Sources */,
+				1A00000000000000000000B8 /* ReminderStoreTests.swift in Sources */,
+				1A00000000000000000000B9 /* ReminderSchedulerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -444,7 +464,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = "";
 				EMIT_FRONTEND_COMMAND_LINES = YES;
 				ENABLE_APP_SANDBOX = NO;
@@ -458,7 +478,7 @@
 					"@loader_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.PRTracker;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -474,7 +494,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_APP_SANDBOX = NO;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -486,7 +506,7 @@
 					"@loader_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.PRTracker;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;

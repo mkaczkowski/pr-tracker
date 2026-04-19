@@ -3,6 +3,7 @@ import SwiftUI
 @main
 struct PRTrackerApp: App {
     private static let settingsWindowID = "settings"
+    private static let reminderWindowID = "reminder-editor"
     @State private var model = AppModel()
 
     var body: some Scene {
@@ -17,6 +18,12 @@ struct PRTrackerApp: App {
             SettingsView(model: model)
         }
         .defaultSize(width: 520, height: 360)
+
+        Window("Set Reminder", id: Self.reminderWindowID) {
+            ReminderEditorWindow(model: model)
+        }
+        .defaultSize(width: 360, height: 200)
+        .windowResizability(.contentSize)
     }
 }
 

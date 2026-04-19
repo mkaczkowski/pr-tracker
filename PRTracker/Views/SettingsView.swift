@@ -50,6 +50,9 @@ struct SettingsView: View {
             Section("System") {
                 Toggle("Enable notifications", isOn: $notificationsEnabled)
                     .onChange(of: notificationsEnabled) { _, _ in settingsDidChange() }
+                Text("Review alerts and PR reminders use system notifications while PR Tracker is running.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 Toggle("Launch at login", isOn: $launchAtLoginEnabled)
                     .onChange(of: launchAtLoginEnabled) { _, _ in settingsDidChange() }
             }

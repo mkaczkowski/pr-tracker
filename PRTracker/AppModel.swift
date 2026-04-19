@@ -10,6 +10,18 @@ enum MenuBarIconState {
 }
 
 @MainActor
+struct ReminderEditorDraft: Identifiable {
+    let pullRequest: PullRequest
+    let context: PullRequestListContext
+    let minimumDate: Date
+    var scheduledAt: Date
+
+    var id: String {
+        "\(pullRequest.id)-\(context.id)"
+    }
+}
+
+@MainActor
 @Observable
 final class AppModel {
     var buckets: ReviewBuckets = .empty
@@ -26,11 +38,15 @@ final class AppModel {
     private let refreshScheduler: RefreshScheduler
     private let seenStateStore: any SeenStateStoring
     private let notificationService: any NotificationServing
+    private let reminderStore: any ReminderStoring
+    private let reminderScheduler: any ReminderScheduling
     private let launchAtLoginService: any LaunchAtLoginServing
     private let reachability: any ReachabilityServing
     private let sleepWakeObserver: any SleepWakeObserving
 
     private(set) var isRefreshing = false
+    private(set) var remindersByKey: [PullRequestReminderKey: PullRequestReminder] = [:]
+    private(set) var reminderEditorDraft: ReminderEditorDraft?
 
     private var didStart = false
 
@@ -40,6 +56,8 @@ final class AppModel {
         refreshScheduler: RefreshScheduler? = nil,
         seenStateStore: (any SeenStateStoring)? = nil,
         notificationService: (any NotificationServing)? = nil,
+        reminderStore: (any ReminderStoring)? = nil,
+        reminderScheduler: (any ReminderScheduling)? = nil,
         launchAtLoginService: (any LaunchAtLoginServing)? = nil,
         reachability: (any ReachabilityServing)? = nil,
         sleepWakeObserver: (any SleepWakeObserving)? = nil
@@ -53,6 +71,8 @@ final class AppModel {
         self.refreshScheduler = refreshScheduler ?? RefreshScheduler()
         self.seenStateStore = seenStateStore ?? SeenStateStore(defaults: userDefaults)
         self.notificationService = notificationService ?? NotificationService()
+        self.reminderStore = reminderStore ?? ReminderStore(defaults: userDefaults)
+        self.reminderScheduler = reminderScheduler ?? ReminderScheduler()
         self.launchAtLoginService = launchAtLoginService ?? LaunchAtLoginService()
         self.reachability = reachability ?? Reachability()
         self.sleepWakeObserver = sleepWakeObserver ?? SleepWakeObserver()
@@ -63,6 +83,10 @@ final class AppModel {
         didStart = true
 
         refreshFromStoredSettings(forceApplySystemSettings: true, restartScheduler: false)
+        Task { [weak self] in
+            guard let self else { return }
+            await self.loadRemindersForCurrentHost()
+        }
 
         reachability.start { [weak self] reachable in
             guard let self else { return }
@@ -86,13 +110,18 @@ final class AppModel {
             onWillSleep: { [weak self] in
                 guard let self else { return }
                 Task { @MainActor [weak self] in
-                    self?.refreshScheduler.stop()
+                    guard let self else { return }
+                    self.refreshScheduler.stop()
+                    Task {
+                        await self.reminderScheduler.stop()
+                    }
                 }
             },
             onDidWake: { [weak self] in
                 guard let self else { return }
                 Task { @MainActor [weak self] in
                     guard let self else { return }
+                    await self.scheduleReminderChecks()
                     self.startScheduler()
                     _ = await self.refresh(reason: "did-wake")
                 }
@@ -135,6 +164,11 @@ final class AppModel {
 
         if forceApplySystemSettings || previousSettings.launchAtLoginEnabled != settings.launchAtLoginEnabled {
             applyLaunchAtLoginPreference()
+        }
+
+        Task { [weak self] in
+            guard let self else { return }
+            await self.handleReminderSettingsChange(previousSettings: previousSettings)
         }
     }
 
@@ -182,6 +216,88 @@ final class AppModel {
         refreshFromStoredSettings()
     }
 
+    func canSetReminder(for pullRequest: PullRequest, context: PullRequestListContext) -> Bool {
+        pullRequest.canConfigureReminder(
+            context: context,
+            viewerLogin: visibleBuckets.user
+        )
+    }
+
+    func reminder(for pullRequest: PullRequest) -> PullRequestReminder? {
+        remindersByKey[pullRequest.reminderKey(host: reminderHost)]
+    }
+
+    func setReminder(
+        for pullRequest: PullRequest,
+        context: PullRequestListContext,
+        at scheduledAt: Date
+    ) {
+        guard canSetReminder(for: pullRequest, context: context) else { return }
+
+        let key = pullRequest.reminderKey(host: reminderHost)
+        let reminder = PullRequestReminder(
+            key: key,
+            title: pullRequest.title,
+            url: pullRequest.url,
+            author: pullRequest.author,
+            scheduledAt: max(scheduledAt, Date().addingTimeInterval(60)),
+            createdAt: Date()
+        )
+        remindersByKey[key] = reminder
+
+        Task { [weak self] in
+            guard let self else { return }
+            await self.reminderStore.upsert(reminder)
+            await self.scheduleReminderChecks()
+        }
+    }
+
+    func clearReminder(for pullRequest: PullRequest) {
+        let key = pullRequest.reminderKey(host: reminderHost)
+        guard remindersByKey.removeValue(forKey: key) != nil else { return }
+
+        Task { [weak self] in
+            guard let self else { return }
+            await self.reminderStore.removeReminder(for: key)
+            await self.scheduleReminderChecks()
+        }
+    }
+
+    func beginCustomReminderEditor(for pullRequest: PullRequest, context: PullRequestListContext) {
+        guard canSetReminder(for: pullRequest, context: context) else { return }
+
+        let minimumDate = Date().addingTimeInterval(60)
+        let fallbackDate = Date().addingTimeInterval(3_600)
+        let selectedDate = max(reminder(for: pullRequest)?.scheduledAt ?? fallbackDate, minimumDate)
+
+        reminderEditorDraft = ReminderEditorDraft(
+            pullRequest: pullRequest,
+            context: context,
+            minimumDate: minimumDate,
+            scheduledAt: selectedDate
+        )
+    }
+
+    func updateReminderEditorDate(_ selectedDate: Date) {
+        guard var draft = reminderEditorDraft else { return }
+        draft.scheduledAt = max(selectedDate, draft.minimumDate)
+        reminderEditorDraft = draft
+    }
+
+    func cancelReminderEditor() {
+        reminderEditorDraft = nil
+    }
+
+    func confirmReminderEditor() {
+        guard let draft = reminderEditorDraft else { return }
+        setReminder(
+            for: draft.pullRequest,
+            context: draft.context,
+            at: draft.scheduledAt
+        )
+        reminderEditorDraft = nil
+    }
+
     @discardableResult
     func refresh(reason: String) async -> Bool {
         if isRefreshing {
@@ -215,6 +331,7 @@ final class AppModel {
 
             let diff = await seenStateStore.apply(current: visibleBuckets)
             await notificationService.postNotifications(from: diff, enabled: settings.notificationsEnabled)
+            await reconcileRemindersWithCurrentBuckets()
             AppLog.refresh.info("Refresh succeeded for reason: \(reason)")
             return true
         } catch let error as AuthError {
@@ -247,6 +364,98 @@ final class AppModel {
         refreshScheduler.start(intervalSeconds: settings.refreshIntervalSeconds) { [weak self] in
             guard let self else { return true }
             return await self.refresh(reason: "timer")
+        }
+    }
+
+    private var reminderHost: String {
+        let host = settings.host.trimmingCharacters(in: .whitespacesAndNewlines)
+        return AppSettings.normalizedHost(host)
+    }
+
+    private func handleReminderSettingsChange(previousSettings: AppSettings) async {
+        if previousSettings.host.caseInsensitiveCompare(settings.host) != .orderedSame {
+            await loadRemindersForCurrentHost()
+            return
+        }
+
+        await scheduleReminderChecks()
+    }
+
+    private func loadRemindersForCurrentHost() async {
+        let allReminders = await reminderStore.loadReminders()
+        let host = reminderHost
+        let reminders = allReminders.filter { $0.key.matches(host: host) }
+        remindersByKey = Dictionary(uniqueKeysWithValues: reminders.map { ($0.key, $0) })
+        await scheduleReminderChecks()
+    }
+
+    private func reconcileRemindersWithCurrentBuckets() async {
+        let viewer = buckets.user.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard viewer.isEmpty == false else {
+            await scheduleReminderChecks()
+            return
+        }
+
+        let host = reminderHost
+        let eligibleKeys = Set(
+            (buckets.awaitingReview + buckets.reviewedNotApproved)
+                .filter { $0.isAuthored(by: viewer) == false }
+                .map { $0.reminderKey(host: host) }
+        )
+
+        let staleKeys = Set(remindersByKey.keys).subtracting(eligibleKeys)
+        if staleKeys.isEmpty {
+            await scheduleReminderChecks()
+            return
+        }
+
+        for key in staleKeys {
+            remindersByKey.removeValue(forKey: key)
+        }
+        await reminderStore.removeReminders(for: staleKeys)
+        await scheduleReminderChecks()
+    }
+
+    private func scheduleReminderChecks(now: Date = Date()) async {
+        let reminders = Array(remindersByKey.values)
+        await reminderScheduler.update(reminders: reminders, now: now) { [weak self] dueReminders in
+            guard let self else { return }
+            await MainActor.run {
+                self.handleDueReminders(dueReminders)
+            }
+        }
+    }
+
+    private func handleDueReminders(_ dueReminders: [PullRequestReminder]) {
+        guard dueReminders.isEmpty == false else { return }
+        guard settings.notificationsEnabled else { return }
+
+        let activeDue = dueReminders.compactMap { remindersByKey[$0.key] }
+        guard activeDue.isEmpty == false else { return }
+
+        let dueKeys = Set(activeDue.map(\.key))
+        for key in dueKeys {
+            remindersByKey.removeValue(forKey: key)
+        }
+
+        Task { [weak self] in
+            guard let self else { return }
+            await self.notificationService.postReminderNotifications(activeDue, enabled: self.settings.notificationsEnabled)
+            await self.reminderStore.removeReminders(for: dueKeys)
+            await self.scheduleReminderChecks()
+        }
+    }
+}
+
+private extension PullRequestListContext {
+    var id: String {
+        switch self {
+        case .awaitingReview:
+            return "awaiting"
+        case .reviewedNotApproved:
+            return "reviewed"
+        case .myOpenNeedingAttention:
+            return "my-open"
         }
     }
 }

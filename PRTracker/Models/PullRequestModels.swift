@@ -116,6 +116,27 @@ struct PullRequest: Codable, Hashable, Identifiable, Sendable {
         }
         return .waiting
     }
+
+    func isAuthored(by viewerLogin: String) -> Bool {
+        let normalizedViewer = viewerLogin.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard normalizedViewer.isEmpty == false else { return false }
+        return author.caseInsensitiveCompare(normalizedViewer) == .orderedSame
+    }
+
+    func canConfigureReminder(context: PullRequestListContext, viewerLogin: String) -> Bool {
+        let normalizedViewer = viewerLogin.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard normalizedViewer.isEmpty == false else { return false }
+        guard context != .myOpenNeedingAttention else { return false }
+        return isAuthored(by: normalizedViewer) == false
+    }
+
+    func reminderKey(host: String) -> PullRequestReminderKey {
+        PullRequestReminderKey(
+            host: AppSettings.normalizedHost(host),
+            repository: repository,
+            number: number
+        )
+    }
 }
 
 struct BucketTotals: Codable, Hashable, Sendable {
@@ -174,5 +195,40 @@ struct PRKey: Codable, Hashable, Sendable {
     let number: Int
     let lastCommitDate: Date?
     let latestReviewState: ReviewState
+}
+
+struct PullRequestReminderKey: Codable, Hashable, Sendable {
+    let host: String
+    let repository: String
+    let number: Int
+
+    var id: String {
+        "\(host)#\(repository)#\(number)"
+    }
+
+    func matches(host: String) -> Bool {
+        self.host.caseInsensitiveCompare(AppSettings.normalizedHost(host)) == .orderedSame
+    }
+}
+
+struct PullRequestReminder: Codable, Hashable, Identifiable, Sendable {
+    let key: PullRequestReminderKey
+    let title: String
+    let url: URL?
+    let author: String
+    let scheduledAt: Date
+    let createdAt: Date
+
+    var id: String {
+        key.id
+    }
+
+    var repository: String {
+        key.repository
+    }
+
+    var number: Int {
+        key.number
+    }
 }
 

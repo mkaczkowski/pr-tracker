@@ -233,6 +233,20 @@ struct MenuBarPopover: View {
                                 pullRequest: pullRequest,
                                 requiredApprovals: model.settings.requiredApprovals,
                                 context: context,
+                                reminder: model.reminder(for: pullRequest),
+                                canConfigureReminder: model.canSetReminder(for: pullRequest, context: context),
+                                onSetReminder: { scheduledAt in
+                                    model.setReminder(for: pullRequest, context: context, at: scheduledAt)
+                                },
+                                onCustomReminderRequested: {
+                                    model.beginCustomReminderEditor(for: pullRequest, context: context)
+                                    guard model.reminderEditorDraft != nil else { return }
+                                    NSApp.activate(ignoringOtherApps: true)
+                                    openWindow(id: "reminder-editor")
+                                },
+                                onClearReminder: {
+                                    model.clearReminder(for: pullRequest)
+                                },
                                 hoveredID: $hoveredPRID
                             )
                         }

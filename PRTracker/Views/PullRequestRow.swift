@@ -12,11 +12,17 @@ struct PullRequestRow: View {
     private enum TimeChipKind: Hashable {
         case reviewRequested
         case lastPush
+        case reminder
     }
 
     let pullRequest: PullRequest
     let requiredApprovals: Int
     let context: PullRequestListContext
+    let reminder: PullRequestReminder?
+    let canConfigureReminder: Bool
+    let onSetReminder: (Date) -> Void
+    let onCustomReminderRequested: () -> Void
+    let onClearReminder: () -> Void
     @Binding var hoveredID: String?
     @State private var lastOpenAt: Date = .distantPast
     @State private var hoveredTimeChip: TimeChipKind?
@@ -52,10 +58,9 @@ struct PullRequestRow: View {
             isHovering: isHovering,
             isClickable: isClickable,
             onHoverChanged: updateHoverState,
-            openPullRequest: openPullRequestDebounced,
-            copyURL: copyURL,
-            copyCheckoutCommand: copyCheckoutCommand
+            openPullRequest: openPullRequestDebounced
         ))
+        .contextMenu { contextMenuContent }
         .textSelection(.disabled)
     }
 
@@ -78,6 +83,9 @@ struct PullRequestRow: View {
                         context: context
                     )
                 )
+                if canConfigureReminder {
+                    reminderMenuButton
+                }
             }
         }
         .padding(.top, 4)
@@ -126,7 +134,7 @@ struct PullRequestRow: View {
         // Single-line + tail truncation keeps row heights uniform; the full
         // title is still discoverable via the tooltip and accessibility label.
         Text(verbatim: parsed.title)
-            .font(.subheadline)
+            .font(.body)
             .foregroundStyle(.primary)
             .lineLimit(1)
             .truncationMode(.tail)
@@ -161,7 +169,7 @@ struct PullRequestRow: View {
             authorChip
                 .layoutPriority(1)
         }
-        .font(.caption)
+        .font(.subheadline)
         .foregroundStyle(.secondary)
         .lineLimit(1)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -197,7 +205,8 @@ struct PullRequestRow: View {
     }
 
     private var timeChipsCluster: some View {
-        HStack(spacing: 8) {
+        let now = Date()
+        return HStack(spacing: 8) {
             if let reviewRequestedAt = pullRequest.reviewRequestedAt,
                let waited = relativeTime(reviewRequestedAt) {
                 timeChip(
@@ -221,6 +230,15 @@ struct PullRequestRow: View {
                         label: "Last push",
                         date: lastCommitDate
                     )
+                )
+            }
+
+            if let reminder {
+                timeChip(
+                    kind: .reminder,
+                    systemImage: "bell",
+                    value: reminderCountdownValue(reminder, now: now),
+                    tooltip: reminderTooltip(reminder, now: now)
                 )
             }
         }
@@ -269,6 +287,32 @@ struct PullRequestRow: View {
         "\(label): \(Self.timestampFormatter.string(from: date))"
     }
 
+    private func reminderTooltip(_ reminder: PullRequestReminder, now: Date) -> String {
+        let timestamp = Self.timestampFormatter.string(from: reminder.scheduledAt)
+        if reminder.scheduledAt <= now {
+            return "Reminder due since \(timestamp)"
+        }
+        return "Reminder in \(reminderCountdownValue(reminder, now: now)) (\(timestamp))"
+    }
+
+    private func reminderCountdownValue(_ reminder: PullRequestReminder, now: Date) -> String {
+        let secondsRemaining = reminder.scheduledAt.timeIntervalSince(now)
+        guard secondsRemaining > 0 else { return "due" }
+
+        let minutesRemaining = max(1, Int(ceil(secondsRemaining / 60)))
+        if minutesRemaining < 120 {
+            return "\(minutesRemaining)m"
+        }
+
+        let hoursRemaining = Int(ceil(Double(minutesRemaining) / 60))
+        if hoursRemaining < 48 {
+            return "\(hoursRemaining)h"
+        }
+
+        let daysRemaining = Int(ceil(Double(hoursRemaining) / 24))
+        return "\(daysRemaining)d"
+    }
+
     private static let timestampFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
@@ -281,11 +325,66 @@ struct PullRequestRow: View {
 
     private var numberText: some View {
         Text(verbatim: "#\(pullRequest.number)")
-            .font(.caption.monospacedDigit())
+            .font(.subheadline.weight(.medium).monospacedDigit())
             .foregroundStyle(.tertiary.opacity(0.7))
     }
 
     // MARK: - Actions
+
+    private var reminderMenuButton: some View {
+        Menu {
+            reminderMenuActions
+        } label: {
+            Image(systemName: reminder == nil ? "bell.badge" : "bell.badge.fill")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(reminder == nil ? Color.secondary : Color.accentColor)
+                .frame(width: 18, height: 18)
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .help(reminder == nil ? "Set reminder" : "Update reminder")
+    }
+
+    @ViewBuilder
+    private var reminderMenuActions: some View {
+        Button("In 1 hour") { onSetReminder(Date().addingTimeInterval(3_600)) }
+        Button("In 2 hours") { onSetReminder(Date().addingTimeInterval(7_200)) }
+        Button("In 4 hours") { onSetReminder(Date().addingTimeInterval(14_400)) }
+        Button("Tomorrow morning") { onSetReminder(defaultTomorrowMorning()) }
+        Button("Custom…", action: onCustomReminderRequested)
+
+        if reminder != nil {
+            Divider()
+            Button("Clear reminder", role: .destructive, action: onClearReminder)
+        }
+    }
+
+    @ViewBuilder
+    private var contextMenuContent: some View {
+        Button("Open Pull Request", action: openPullRequest)
+        Button("Copy URL", action: copyURL)
+        Button("Copy gh pr checkout command", action: copyCheckoutCommand)
+
+        if canConfigureReminder {
+            Divider()
+
+            Menu(reminder == nil ? "Remind me" : "Update reminder") {
+                reminderMenuActions
+            }
+        }
+    }
+
+    private func defaultTomorrowMorning() -> Date {
+        let calendar = Calendar.current
+        let now = Date()
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: now) ?? now
+        return calendar.date(
+            bySettingHour: 9,
+            minute: 0,
+            second: 0,
+            of: tomorrow
+        ) ?? tomorrow
+    }
 
     private func openPullRequest() {
         guard let url = pullRequest.url else { return }
@@ -348,8 +447,6 @@ private struct RowChrome: ViewModifier {
     let isClickable: Bool
     let onHoverChanged: (Bool) -> Void
     let openPullRequest: () -> Void
-    let copyURL: () -> Void
-    let copyCheckoutCommand: () -> Void
 
     func body(content: Content) -> some View {
         content
@@ -359,11 +456,6 @@ private struct RowChrome: ViewModifier {
             .onTapGesture {
                 guard isClickable else { return }
                 openPullRequest()
-            }
-            .contextMenu {
-                Button("Open Pull Request", action: openPullRequest)
-                Button("Copy URL", action: copyURL)
-                Button("Copy gh pr checkout command", action: copyCheckoutCommand)
             }
             .modifier(PointingHandCursor(isEnabled: isClickable))
     }
