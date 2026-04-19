@@ -10,8 +10,19 @@ Official macOS zips are published on **[GitHub Releases](https://github.com/mkac
 
 1. Download **PRTracker-macos-\*.zip** from the latest release and **double-click it** (Finder expands it; no Terminal needed).
 2. Drag **PRTracker.app** to **Applications** (or run it from the folder).
-3. **First launch:** unsigned builds may be blocked until you **right-click the app → Open → Open**, or approve under **System Settings → Privacy & Security**.
+3. **First launch (unsigned builds):** try **Control-click → Open → Open**. If macOS shows *“could not verify… malware”* with only **Close** / **Move to Trash**, that is normal for **not-notarized** apps. Do this next:
+   - Open **System Settings → Privacy & Security**, scroll to **Security**, find the message about PRTracker being blocked, and click **Open Anyway** (you may need to try launching once first so the button appears), **or**
+   - If you **trust this release** (e.g. you checked the SHA-256 on the release page), remove the download quarantine flag, then open again:
+
+     ```bash
+     xattr -dr com.apple.quarantine /Applications/PRTracker.app
+     ```
+
+     Adjust the path if the app is still in `Downloads`.
+
 4. After launch, look in the **menu bar** (no Dock icon).
+
+**Why this happens:** downloads from the web get **Gatekeeper** + **quarantine**. Our GitHub zip is **not Apple-notarized** (that requires a paid Developer ID + `notarize.sh`). Removing quarantine only dismisses the “downloaded from internet” flag—it does not magically verify malware; use it only for builds you trust.
 
 Optional: verify the zip with `shasum -a 256` if a SHA-256 was published with the release.
 
