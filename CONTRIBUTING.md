@@ -32,7 +32,7 @@ What it does:
 
 1. Builds **Release** with **ad hoc** code signing (`CODE_SIGN_IDENTITY=-`). That is not a Developer ID certificate; it only produces a normal `.app` suitable for copying to other Macs without using your personal development provisioning profile.
 2. Writes `**build/PRTracker.app`** (ready to drag to `/Applications` or run from the folder).
-3. Writes `**build/PRTracker-macos-<version>-b<build>.zip**` for attaching to a release, chat, or internal storage.
+3. Writes `**build/PRTracker-macos-<version>-b<build>.zip`** for attaching to a release, chat, or internal storage.
 4. Prints **SHA-256** of the zip so recipients can verify integrity if you publish the hash.
 
 Intermediate Xcode output lives under `**build/DerivedData/`** (ignored by git). To force a fully clean rebuild, remove the whole `build/` directory and run the script again.
