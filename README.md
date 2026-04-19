@@ -6,7 +6,9 @@ macOS menu bar app for GitHub PR review triage: **Awaiting your review** and **R
 
 ## Install a release
 
-1. Download the release zip and **double-click it** (Finder expands it; no Terminal needed).
+Official macOS zips are published on **[GitHub Releases](https://github.com/mkaczkowski/pr-tracker/releases)** (built by CI when a maintainer pushes a version tag—see [`CONTRIBUTING.md`](CONTRIBUTING.md)).
+
+1. Download **`PRTracker-macos-*.zip`** from the latest release and **double-click it** (Finder expands it; no Terminal needed).
 2. Drag **`PRTracker.app`** to **Applications** (or run it from the folder).
 3. **First launch:** unsigned builds may be blocked until you **right-click the app → Open → Open**, or approve under **System Settings → Privacy & Security**.
 4. After launch, look in the **menu bar** (no Dock icon).
@@ -24,8 +26,9 @@ Open `PRTracker.xcodeproj` in Xcode and run the **PRTracker** scheme.
 
 ## Packaging
 
-- Unsigned Release zip for sharing: `./scripts/package-unsigned.sh` ([details](CONTRIBUTING.md))
-- Notarize a signed artifact: `scripts/notarize.sh`
+- **Official release assets:** pushing a git tag named `v*` runs [`.github/workflows/release.yml`](.github/workflows/release.yml) on macOS and uploads the same unsigned zip as `./scripts/package-unsigned.sh` would produce locally.
+- **Local zip** (manual / pre-tag test): `./scripts/package-unsigned.sh` ([details](CONTRIBUTING.md))
+- **Notarize** a signed artifact: `scripts/notarize.sh`
 - Homebrew cask `pr-tracker`: optional / planned
 
 For contributors: [`CONTRIBUTING.md`](CONTRIBUTING.md). Security reports: [`SECURITY.md`](SECURITY.md). MIT — [`LICENSE`](LICENSE).

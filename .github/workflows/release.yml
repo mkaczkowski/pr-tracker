@@ -1,0 +1,42 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  macos-unsigned-zip:
+    runs-on: macos-14
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build unsigned Release zip
+        run: ./scripts/package-unsigned.sh
+
+      - name: Capture zip metadata
+        id: meta
+        run: |
+          ZIP=$(ls build/PRTracker-macos-*.zip)
+          echo "zip=$(basename "$ZIP")" >> "$GITHUB_OUTPUT"
+          echo "sha256=$(shasum -a 256 "$ZIP" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/PRTracker-macos-*.zip
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+          body: |
+            ### Unsigned macOS build (ad hoc)
+
+            Requires **macOS 14+**, [GitHub CLI](https://cli.github.com/) (`brew install gh`), and `gh auth login`. Install: double-click the zip, drag **PRTracker.app** to Applications; first launch may require **right-click → Open**.
+
+            **SHA-256** (`${{ steps.meta.outputs.zip }}`): `${{ steps.meta.outputs.sha256 }}`
+
+            ---
