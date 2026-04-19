@@ -6,10 +6,10 @@ macOS menu bar app for GitHub PR review triage: **Awaiting your review** and **R
 
 ## Install a release
 
-Official macOS zips are published on **[GitHub Releases](https://github.com/mkaczkowski/pr-tracker/releases)** (built by CI when a maintainer pushes a version tag—see [`CONTRIBUTING.md`](CONTRIBUTING.md)).
+Official macOS zips are published on **[GitHub Releases](https://github.com/mkaczkowski/pr-tracker/releases)** (built by CI when a maintainer pushes a version tag—see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
-1. Download **`PRTracker-macos-*.zip`** from the latest release and **double-click it** (Finder expands it; no Terminal needed).
-2. Drag **`PRTracker.app`** to **Applications** (or run it from the folder).
+1. Download **PRTracker-macos-\*.zip** from the latest release and **double-click it** (Finder expands it; no Terminal needed).
+2. Drag **PRTracker.app** to **Applications** (or run it from the folder).
 3. **First launch:** unsigned builds may be blocked until you **right-click the app → Open → Open**, or approve under **System Settings → Privacy & Security**.
 4. After launch, look in the **menu bar** (no Dock icon).
 
@@ -26,9 +26,9 @@ Open `PRTracker.xcodeproj` in Xcode and run the **PRTracker** scheme.
 
 ## Packaging
 
-- **Official release assets:** pushing a git tag named `v*` runs [`.github/workflows/release.yml`](.github/workflows/release.yml) on macOS and uploads the same unsigned zip as `./scripts/package-unsigned.sh` would produce locally.
-- **Local zip** (manual / pre-tag test): `./scripts/package-unsigned.sh` ([details](CONTRIBUTING.md))
+- **GitHub Releases:** push a tag named `v*` (must match Xcode **Marketing Version**). CI runs [`check-release-tag.sh`](scripts/check-release-tag.sh), **tests**, then [`package-unsigned.sh`](scripts/package-unsigned.sh); see [`.github/workflows/release.yml`](.github/workflows/release.yml).
+- **Local zip** (manual / pre-tag): `./scripts/package-unsigned.sh` ([CONTRIBUTING.md](CONTRIBUTING.md)).
 - **Notarize** a signed artifact: `scripts/notarize.sh`
 - Homebrew cask `pr-tracker`: optional / planned
 
-For contributors: [`CONTRIBUTING.md`](CONTRIBUTING.md). Security reports: [`SECURITY.md`](SECURITY.md). MIT — [`LICENSE`](LICENSE).
+For contributors: [CONTRIBUTING.md](CONTRIBUTING.md). Security: [SECURITY.md](SECURITY.md). MIT — [LICENSE](LICENSE).

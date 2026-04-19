@@ -8,6 +8,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   macos-unsigned-zip:
     runs-on: macos-14
@@ -15,6 +19,12 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
+      - name: Verify git tag matches Xcode MARKETING_VERSION
+        run: ./scripts/check-release-tag.sh
+
+      - name: Run tests
+        run: xcodebuild -project PRTracker.xcodeproj -scheme PRTracker -destination 'platform=macOS' test
 
       - name: Build unsigned Release zip
         run: ./scripts/package-unsigned.sh

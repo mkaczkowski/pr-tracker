@@ -24,14 +24,22 @@ Pushing a git tag whose name starts with **`v`** (for example `v1.0.1`) triggers
 
 **To cut a release:**
 
-1. In Xcode, bump **Marketing Version** and **Build** (`PRTracker` target → General) so they match what you want in the shipped app bundle.
+1. In Xcode, bump **Marketing Version** and **Build** (`PRTracker` target → General). The git tag **`v…` must match Marketing Version** (without the `v`): e.g. tag `v1.0.2` requires Marketing Version `1.0.2`. CI enforces this before running tests or building the zip.
 2. Commit the version bump on `master`.
-3. Tag and push the tag only (this starts the workflow):
+3. Optional but recommended — fail fast before pushing:
 
 ```bash
-git tag -a v1.0.1 -m "Release v1.0.1"
-git push origin v1.0.1
+./scripts/check-release-tag.sh v1.0.2   # use the tag you are about to push
 ```
+
+4. Tag and push the tag (starts the workflow):
+
+```bash
+git tag -a v1.0.2 -m "Release v1.0.2"
+git push origin v1.0.2
+```
+
+The workflow runs **tests**, then **`package-unsigned.sh`**, then publishes the GitHub Release.
 
 Pushing commits **without** a new tag does not publish a release asset. Fix a bad release manually in the GitHub UI if needed; avoid reusing the same tag name.
 
