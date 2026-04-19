@@ -80,14 +80,17 @@ struct MenuBarPopover: View {
 
             Spacer()
 
-            draftVisibilityToggle
+            HStack(spacing: 10) {
+                draftVisibilityToggle
 
-            refreshToolbarButton
+                refreshToolbarButton
 
-            toolbarButton(systemName: "gearshape", helpText: "Open Settings") {
-                NSApp.activate(ignoringOtherApps: true)
-                openWindow(id: "settings")
+                toolbarButton(systemName: "gearshape", helpText: "Open Settings") {
+                    NSApp.activate(ignoringOtherApps: true)
+                    openWindow(id: "settings")
+                }
             }
+            .padding(.trailing, 8)
         }
         .padding(.bottom, 2)
     }
