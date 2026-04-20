@@ -7,8 +7,10 @@ struct MenuBarPopover: View {
     @Environment(\.openWindow) private var openWindow
 
     @State private var showAwaiting = true
-    @State private var showReviewed = true
-    @State private var showMyOpen = true
+    @State private var showReReview = true
+    @State private var showMyBlocked = true
+    @State private var showMyWaiting = true
+    @State private var showMyReady = false
 
     /// Single source of truth for the hover highlight. PR ids are unique
     /// across sections, so one piece of state lights up exactly one row at a
@@ -35,11 +37,39 @@ struct MenuBarPopover: View {
         .frame(width: 540, height: 600)
         .animation(.snappy(duration: 0.22), value: model.loadState)
         .animation(.snappy(duration: 0.22), value: showAwaiting)
-        .animation(.snappy(duration: 0.22), value: showReviewed)
-        .animation(.snappy(duration: 0.22), value: showMyOpen)
+        .animation(.snappy(duration: 0.22), value: showReReview)
+        .animation(.snappy(duration: 0.22), value: showMyBlocked)
+        .animation(.snappy(duration: 0.22), value: showMyWaiting)
+        .animation(.snappy(duration: 0.22), value: showMyReady)
         .onAppear {
+            collapseEmptySections()
             model.startIfNeeded()
             model.onPopoverOpened()
+        }
+        .onChange(of: visibleBuckets.needsReview.count) { _, count in
+            if count == 0 {
+                showAwaiting = false
+            }
+        }
+        .onChange(of: visibleBuckets.needsReReview.count) { _, count in
+            if count == 0 {
+                showReReview = false
+            }
+        }
+        .onChange(of: visibleBuckets.myOpenBlockedOnYou.count) { _, count in
+            if count == 0 {
+                showMyBlocked = false
+            }
+        }
+        .onChange(of: visibleBuckets.myOpenWaitingOnReviewers.count) { _, count in
+            if count == 0 {
+                showMyWaiting = false
+            }
+        }
+        .onChange(of: visibleBuckets.myOpenEnoughApprovals.count) { _, count in
+            if count == 0 {
+                showMyReady = false
+            }
         }
     }
 
@@ -152,10 +182,10 @@ struct MenuBarPopover: View {
         }
 
         if visibleBuckets.awaitingTruncated {
-            TruncationBanner(message: "Awaiting results capped at 100. Narrow by org.")
+            TruncationBanner(message: "Needs-review results capped at 100. Narrow by org.")
         }
         if visibleBuckets.reviewedTruncated {
-            TruncationBanner(message: "Reviewed results capped at 100. Narrow by org.")
+            TruncationBanner(message: "Re-review results capped at 100. Narrow by org.")
         }
         if visibleBuckets.myOpenTruncated {
             TruncationBanner(message: "Your open PRs capped at 100. Narrow by org.")
@@ -164,35 +194,51 @@ struct MenuBarPopover: View {
 
     @ViewBuilder
     private var loadedContent: some View {
-        if visibleBuckets.awaitingReview.isEmpty
-            && visibleBuckets.reviewedNotApproved.isEmpty
-            && visibleBuckets.myOpenNeedingAttention.isEmpty {
+        if visibleBuckets.needsReview.isEmpty
+            && visibleBuckets.needsReReview.isEmpty
+            && visibleBuckets.myOpenBlockedOnYou.isEmpty
+            && visibleBuckets.myOpenWaitingOnReviewers.isEmpty
+            && visibleBuckets.myOpenEnoughApprovals.isEmpty {
             EmptyStateView(
-                title: "No pending reviews",
+                title: "No PR actions pending",
                 subtitle: "Everything looks clear right now."
             )
         } else {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 14) {
                     bucketSection(
-                        title: "My PRs waiting on reviewers",
-                        pullRequests: visibleBuckets.myOpenNeedingAttention,
-                        context: .myOpenNeedingAttention,
-                        isExpanded: $showMyOpen
-                    )
-
-                    bucketSection(
-                        title: "Awaiting your review",
-                        pullRequests: visibleBuckets.awaitingReview,
-                        context: .awaitingReview,
+                        title: "Needs your review",
+                        pullRequests: visibleBuckets.needsReview,
+                        context: .needsReview,
                         isExpanded: $showAwaiting
                     )
 
                     bucketSection(
-                        title: "Reviewed, not currently approved",
-                        pullRequests: visibleBuckets.reviewedNotApproved,
-                        context: .reviewedNotApproved,
-                        isExpanded: $showReviewed
+                        title: "Needs re-review",
+                        pullRequests: visibleBuckets.needsReReview,
+                        context: .needsReReview,
+                        isExpanded: $showReReview
+                    )
+
+                    bucketSection(
+                        title: "Your PRs blocked on you",
+                        pullRequests: visibleBuckets.myOpenBlockedOnYou,
+                        context: .myOpenBlockedOnYou,
+                        isExpanded: $showMyBlocked
+                    )
+
+                    bucketSection(
+                        title: "Your PRs waiting on reviewers",
+                        pullRequests: visibleBuckets.myOpenWaitingOnReviewers,
+                        context: .myOpenWaitingOnReviewers,
+                        isExpanded: $showMyWaiting
+                    )
+
+                    bucketSection(
+                        title: "Your PRs with enough approvals",
+                        pullRequests: visibleBuckets.myOpenEnoughApprovals,
+                        context: .myOpenEnoughApprovals,
+                        isExpanded: $showMyReady
                     )
                 }
                 // AppKit scrollbars overlay SwiftUI content inside the popover,
@@ -320,6 +366,24 @@ struct MenuBarPopover: View {
         )
         .contentShape(Circle())
         .help(helpText)
+    }
+
+    private func collapseEmptySections() {
+        if visibleBuckets.needsReview.isEmpty {
+            showAwaiting = false
+        }
+        if visibleBuckets.needsReReview.isEmpty {
+            showReReview = false
+        }
+        if visibleBuckets.myOpenBlockedOnYou.isEmpty {
+            showMyBlocked = false
+        }
+        if visibleBuckets.myOpenWaitingOnReviewers.isEmpty {
+            showMyWaiting = false
+        }
+        if visibleBuckets.myOpenEnoughApprovals.isEmpty {
+            showMyReady = false
+        }
     }
 }
 

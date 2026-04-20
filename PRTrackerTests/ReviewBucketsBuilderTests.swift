@@ -17,46 +17,53 @@ final class ReviewBucketsBuilderTests: XCTestCase {
 
         XCTAssertEqual(buckets.user, "alice")
         XCTAssertEqual(buckets.host, "github.com")
-        XCTAssertEqual(buckets.awaitingReview.count, 1)
-        XCTAssertEqual(buckets.reviewedNotApproved.count, 1)
+        XCTAssertEqual(buckets.needsReview.count, 1)
+        XCTAssertEqual(buckets.needsReReview.count, 1)
         XCTAssertEqual(buckets.totals.awaiting, 1)
         XCTAssertEqual(buckets.totals.reviewed, 1)
 
-        let awaiting = try XCTUnwrap(buckets.awaitingReview.first)
+        let awaiting = try XCTUnwrap(buckets.needsReview.first)
         XCTAssertEqual(awaiting.number, 101)
         XCTAssertEqual(awaiting.latestReviewState, .awaiting)
         XCTAssertEqual(awaiting.approvals, 1)
         XCTAssertTrue(awaiting.updatedSinceReview)
         XCTAssertTrue(awaiting.isReReview)
 
-        let reviewed = try XCTUnwrap(buckets.reviewedNotApproved.first)
+        let reviewed = try XCTUnwrap(buckets.needsReReview.first)
         XCTAssertEqual(reviewed.number, 55)
         XCTAssertEqual(reviewed.latestReviewState, .commented)
         XCTAssertTrue(reviewed.updatedSinceReview)
-        XCTAssertFalse(reviewed.isReReview)
+        XCTAssertTrue(reviewed.isReReview)
 
-        // myOpen: predicate excludes the changes-requested-no-push case (#202)
-        // and the already-approved case (#203). Re-review owed sorts ahead of
-        // untouched first-review items.
-        XCTAssertEqual(buckets.myOpenNeedingAttention.map(\.number), [201, 200])
+        XCTAssertEqual(buckets.myOpenWaitingOnReviewers.map(\.number), [201, 200])
+        XCTAssertEqual(buckets.myOpenBlockedOnYou.map(\.number), [202])
+        XCTAssertEqual(buckets.myOpenEnoughApprovals.map(\.number), [203])
         XCTAssertFalse(buckets.myOpenTruncated)
 
-        let reReview = try XCTUnwrap(buckets.myOpenNeedingAttention.first)
+        let reReview = try XCTUnwrap(buckets.myOpenWaitingOnReviewers.first)
         XCTAssertEqual(reReview.latestReviewState, .commented)
         XCTAssertEqual(reReview.approvals, 0)
         XCTAssertTrue(reReview.updatedSinceReview)
         XCTAssertNil(reReview.reviewRequestedAt)
 
-        let firstReview = try XCTUnwrap(buckets.myOpenNeedingAttention.last)
+        let firstReview = try XCTUnwrap(buckets.myOpenWaitingOnReviewers.last)
         XCTAssertEqual(firstReview.latestReviewState, .awaiting)
+
+        let blocked = try XCTUnwrap(buckets.myOpenBlockedOnYou.first)
+        XCTAssertEqual(blocked.latestReviewState, .changesRequested)
+
+        let ready = try XCTUnwrap(buckets.myOpenEnoughApprovals.first)
+        XCTAssertEqual(ready.approvals, 2)
 
         let expectedData = try Data(contentsOf: fixtureURL(named: "pending-reviews"))
         let expected = try JSONDecoder().decode(PendingReviewsFixture.self, from: expectedData)
         XCTAssertEqual(expected.user, buckets.user)
         XCTAssertEqual(expected.host, buckets.host)
-        XCTAssertEqual(expected.awaitingReview.first?.number, awaiting.number)
-        XCTAssertEqual(expected.reviewedNotApproved.first?.number, reviewed.number)
-        XCTAssertEqual(expected.myOpenNeedingAttention.map(\.number), [201, 200])
+        XCTAssertEqual(expected.needsReview.first?.number, awaiting.number)
+        XCTAssertEqual(expected.needsReReview.first?.number, reviewed.number)
+        XCTAssertEqual(expected.myOpenWaitingOnReviewers.map(\.number), [201, 200])
+        XCTAssertEqual(expected.myOpenBlockedOnYou.map(\.number), [202])
+        XCTAssertEqual(expected.myOpenEnoughApprovals.map(\.number), [203])
     }
 
     func testTruncationFlagWhenIssueCountExceedsSearchLimit() {
@@ -97,7 +104,7 @@ final class ReviewBucketsBuilderTests: XCTestCase {
         XCTAssertFalse(buckets.myOpenTruncated)
     }
 
-    func testReviewedBucketExcludesWhenLatestMyReviewIsApproved() throws {
+    func testReReviewBucketIncludesLatestApprovedReviewWhenPRChanged() throws {
         let response = try decodeResponse(
             #"""
             {
@@ -133,7 +140,53 @@ final class ReviewBucketsBuilderTests: XCTestCase {
 
         let graphData = try XCTUnwrap(response.data)
         let buckets = ReviewBucketsBuilder().build(from: graphData, host: "github.com", requiredApprovals: 2)
-        XCTAssertTrue(buckets.reviewedNotApproved.isEmpty)
+        XCTAssertEqual(buckets.needsReReview.map(\.number), [12])
+    }
+
+    func testReReviewBucketExcludesStaleApprovalWhenOtherReviewersAreRequested() throws {
+        let response = try decodeResponse(
+            #"""
+            {
+              "data": {
+                "viewer": { "login": "alice" },
+                "awaiting": { "issueCount": 0, "nodes": [] },
+                "reviewed": {
+                  "issueCount": 1,
+                  "nodes": [
+                    {
+                      "number": 73,
+                      "title": "Exclude drafts",
+                      "url": "https://github.com/acme/repo/pull/73",
+                      "updatedAt": "2026-04-19T11:00:00Z",
+                      "author": { "login": "bob" },
+                      "repository": { "nameWithOwner": "acme/repo" },
+                      "reviewDecision": "CHANGES_REQUESTED",
+                      "reviewRequests": {
+                        "nodes": [
+                          { "requestedReviewer": { "login": "carol" } },
+                          { "requestedReviewer": { "login": "dave" } }
+                        ]
+                      },
+                      "reviews": {
+                        "nodes": [
+                          { "state": "APPROVED", "submittedAt": "2026-04-19T08:00:00Z", "author": { "login": "alice" } },
+                          { "state": "CHANGES_REQUESTED", "submittedAt": "2026-04-19T09:00:00Z", "author": { "login": "erin" } }
+                        ]
+                      },
+                      "commits": { "nodes": [ { "commit": { "committedDate": "2026-04-19T10:00:00Z" } } ] },
+                      "timelineItems": { "nodes": [] }
+                    }
+                  ]
+                },
+                "myOpen": { "issueCount": 0, "nodes": [] }
+              }
+            }
+            """#
+        )
+
+        let graphData = try XCTUnwrap(response.data)
+        let buckets = ReviewBucketsBuilder().build(from: graphData, host: "github.com", requiredApprovals: 2)
+        XCTAssertTrue(buckets.needsReReview.isEmpty)
     }
 
     func testApprovalCountUsesLatestReviewPerAuthor() throws {
@@ -172,7 +225,7 @@ final class ReviewBucketsBuilderTests: XCTestCase {
 
         let graphData = try XCTUnwrap(response.data)
         let buckets = ReviewBucketsBuilder().build(from: graphData, host: "github.com", requiredApprovals: 2)
-        let awaiting = try XCTUnwrap(buckets.awaitingReview.first)
+        let awaiting = try XCTUnwrap(buckets.needsReview.first)
         XCTAssertEqual(awaiting.approvals, 0)
     }
 
@@ -229,10 +282,10 @@ final class ReviewBucketsBuilderTests: XCTestCase {
 
         let graphData = try XCTUnwrap(response.data)
         let buckets = ReviewBucketsBuilder().build(from: graphData, host: "github.com", requiredApprovals: 2)
-        XCTAssertEqual(buckets.awaitingReview.map(\.number), [11, 12, 10])
+        XCTAssertEqual(buckets.needsReview.map(\.number), [11, 12, 10])
     }
 
-    func testReviewedSortPrioritizesUpdatedSinceReviewThenNewestPush() throws {
+    func testReReviewSortExcludesNonUpdatedAndPrioritizesNewestPush() throws {
         let response = try decodeResponse(
             #"""
             {
@@ -285,7 +338,8 @@ final class ReviewBucketsBuilderTests: XCTestCase {
 
         let graphData = try XCTUnwrap(response.data)
         let buckets = ReviewBucketsBuilder().build(from: graphData, host: "github.com", requiredApprovals: 2)
-        XCTAssertEqual(buckets.reviewedNotApproved.map(\.number), [22, 21, 20])
+        XCTAssertEqual(buckets.needsReReview.map(\.number), [22, 21])
+        XCTAssertFalse(buckets.needsReReview.contains(where: { $0.number == 20 }))
     }
 
     func testMyOpenSortPrioritizesReReviewThenOldestWaitingThenApprovals() throws {
@@ -348,7 +402,7 @@ final class ReviewBucketsBuilderTests: XCTestCase {
 
         let graphData = try XCTUnwrap(response.data)
         let buckets = ReviewBucketsBuilder().build(from: graphData, host: "github.com", requiredApprovals: 2)
-        XCTAssertEqual(buckets.myOpenNeedingAttention.map(\.number), [31, 33, 32, 30])
+        XCTAssertEqual(buckets.myOpenWaitingOnReviewers.map(\.number), [31, 33, 32, 30])
     }
 
     func testMyOpenIncludesChangesRequestedAfterFollowUpPush() throws {
@@ -385,10 +439,10 @@ final class ReviewBucketsBuilderTests: XCTestCase {
 
         let graphData = try XCTUnwrap(response.data)
         let buckets = ReviewBucketsBuilder().build(from: graphData, host: "github.com", requiredApprovals: 2)
-        XCTAssertEqual(buckets.myOpenNeedingAttention.map(\.number), [300])
-        let pr = try XCTUnwrap(buckets.myOpenNeedingAttention.first)
+        XCTAssertEqual(buckets.myOpenWaitingOnReviewers.map(\.number), [300])
+        let pr = try XCTUnwrap(buckets.myOpenWaitingOnReviewers.first)
         XCTAssertEqual(
-            pr.displayState(requiredApprovals: 2, context: .myOpenNeedingAttention),
+            pr.displayState(requiredApprovals: 2, context: .myOpenWaitingOnReviewers),
             .stale
         )
     }
@@ -427,18 +481,18 @@ final class ReviewBucketsBuilderTests: XCTestCase {
 
         let graphData = try XCTUnwrap(response.data)
         let buckets = ReviewBucketsBuilder().build(from: graphData, host: "github.com", requiredApprovals: 2)
-        let pr = try XCTUnwrap(buckets.myOpenNeedingAttention.first)
+        let pr = try XCTUnwrap(buckets.myOpenWaitingOnReviewers.first)
         XCTAssertEqual(pr.number, 301)
         XCTAssertEqual(pr.approvals, 1)
         XCTAssertEqual(pr.latestReviewState, .approved)
         XCTAssertEqual(
-            pr.displayState(requiredApprovals: 2, context: .myOpenNeedingAttention),
+            pr.displayState(requiredApprovals: 2, context: .myOpenWaitingOnReviewers),
             .waiting
         )
         XCTAssertFalse(
             pr.approvalBadgeShowsComplete(
                 requiredApprovals: 2,
-                context: .myOpenNeedingAttention
+                context: .myOpenWaitingOnReviewers
             )
         )
     }
@@ -477,15 +531,15 @@ final class ReviewBucketsBuilderTests: XCTestCase {
 
         let graphData = try XCTUnwrap(response.data)
         let buckets = ReviewBucketsBuilder().build(from: graphData, host: "github.com", requiredApprovals: 1)
-        let pr = try XCTUnwrap(buckets.myOpenNeedingAttention.first)
+        let pr = try XCTUnwrap(buckets.myOpenWaitingOnReviewers.first)
         XCTAssertEqual(
-            pr.displayState(requiredApprovals: 1, context: .myOpenNeedingAttention),
+            pr.displayState(requiredApprovals: 1, context: .myOpenWaitingOnReviewers),
             .stale
         )
         XCTAssertFalse(
             pr.approvalBadgeShowsComplete(
                 requiredApprovals: 1,
-                context: .myOpenNeedingAttention
+                context: .myOpenWaitingOnReviewers
             )
         )
     }
@@ -524,10 +578,147 @@ final class ReviewBucketsBuilderTests: XCTestCase {
 
         let graphData = try XCTUnwrap(response.data)
         let buckets = ReviewBucketsBuilder().build(from: graphData, host: "github.com", requiredApprovals: 2)
-        let pr = try XCTUnwrap(buckets.myOpenNeedingAttention.first)
+        let pr = try XCTUnwrap(buckets.myOpenWaitingOnReviewers.first)
         XCTAssertEqual(
-            pr.displayState(requiredApprovals: 2, context: .myOpenNeedingAttention),
+            pr.displayState(requiredApprovals: 2, context: .myOpenWaitingOnReviewers),
             .pending
+        )
+    }
+
+    func testBlockedAndEnoughApprovalBucketsSortAndDisplayState() throws {
+        let response = try decodeResponse(
+            #"""
+            {
+              "data": {
+                "viewer": { "login": "alice" },
+                "awaiting": { "issueCount": 0, "nodes": [] },
+                "reviewed": { "issueCount": 0, "nodes": [] },
+                "myOpen": {
+                  "issueCount": 4,
+                  "nodes": [
+                    {
+                      "number": 401,
+                      "title": "Older blocked PR",
+                      "url": "https://github.com/acme/repo/pull/401",
+                      "updatedAt": "2026-04-19T08:00:00Z",
+                      "author": { "login": "alice" },
+                      "repository": { "nameWithOwner": "acme/repo" },
+                      "reviews": { "nodes": [ { "state": "CHANGES_REQUESTED", "submittedAt": "2026-04-19T07:00:00Z", "author": { "login": "bob" } } ] },
+                      "commits": { "nodes": [ { "commit": { "committedDate": "2026-04-19T06:00:00Z" } } ] }
+                    },
+                    {
+                      "number": 402,
+                      "title": "Newer blocked PR",
+                      "url": "https://github.com/acme/repo/pull/402",
+                      "updatedAt": "2026-04-19T09:00:00Z",
+                      "author": { "login": "alice" },
+                      "repository": { "nameWithOwner": "acme/repo" },
+                      "reviews": { "nodes": [ { "state": "CHANGES_REQUESTED", "submittedAt": "2026-04-19T08:30:00Z", "author": { "login": "carol" } } ] },
+                      "commits": { "nodes": [ { "commit": { "committedDate": "2026-04-19T08:00:00Z" } } ] }
+                    },
+                    {
+                      "number": 403,
+                      "title": "Most recent ready PR",
+                      "url": "https://github.com/acme/repo/pull/403",
+                      "updatedAt": "2026-04-19T11:00:00Z",
+                      "author": { "login": "alice" },
+                      "repository": { "nameWithOwner": "acme/repo" },
+                      "reviews": {
+                        "nodes": [
+                          { "state": "APPROVED", "submittedAt": "2026-04-19T09:00:00Z", "author": { "login": "bob" } },
+                          { "state": "APPROVED", "submittedAt": "2026-04-19T09:15:00Z", "author": { "login": "carol" } }
+                        ]
+                      },
+                      "commits": { "nodes": [ { "commit": { "committedDate": "2026-04-19T08:00:00Z" } } ] }
+                    },
+                    {
+                      "number": 404,
+                      "title": "Older ready PR",
+                      "url": "https://github.com/acme/repo/pull/404",
+                      "updatedAt": "2026-04-19T10:00:00Z",
+                      "author": { "login": "alice" },
+                      "repository": { "nameWithOwner": "acme/repo" },
+                      "reviews": {
+                        "nodes": [
+                          { "state": "APPROVED", "submittedAt": "2026-04-19T08:00:00Z", "author": { "login": "dave" } },
+                          { "state": "APPROVED", "submittedAt": "2026-04-19T08:15:00Z", "author": { "login": "erin" } }
+                        ]
+                      },
+                      "commits": { "nodes": [ { "commit": { "committedDate": "2026-04-19T07:00:00Z" } } ] }
+                    }
+                  ]
+                }
+              }
+            }
+            """#
+        )
+
+        let graphData = try XCTUnwrap(response.data)
+        let buckets = ReviewBucketsBuilder().build(from: graphData, host: "github.com", requiredApprovals: 2)
+
+        XCTAssertEqual(buckets.myOpenBlockedOnYou.map(\.number), [401, 402])
+        XCTAssertEqual(buckets.myOpenEnoughApprovals.map(\.number), [403, 404])
+
+        let blocked = try XCTUnwrap(buckets.myOpenBlockedOnYou.first)
+        XCTAssertEqual(
+            blocked.displayState(requiredApprovals: 2, context: .myOpenBlockedOnYou),
+            .changesRequested
+        )
+        XCTAssertFalse(
+            blocked.approvalBadgeShowsComplete(
+                requiredApprovals: 2,
+                context: .myOpenBlockedOnYou
+            )
+        )
+
+        let ready = try XCTUnwrap(buckets.myOpenEnoughApprovals.first)
+        XCTAssertEqual(
+            ready.displayState(requiredApprovals: 2, context: .myOpenEnoughApprovals),
+            .approved
+        )
+        XCTAssertTrue(
+            ready.approvalBadgeShowsComplete(
+                requiredApprovals: 2,
+                context: .myOpenEnoughApprovals
+            )
+        )
+    }
+
+    func testNeedsReReviewContextAlwaysShowsReReviewState() throws {
+        let response = try decodeResponse(
+            #"""
+            {
+              "data": {
+                "viewer": { "login": "alice" },
+                "awaiting": { "issueCount": 0, "nodes": [] },
+                "reviewed": {
+                  "issueCount": 1,
+                  "nodes": [
+                    {
+                      "number": 405,
+                      "title": "Approved then changed",
+                      "url": "https://github.com/acme/repo/pull/405",
+                      "updatedAt": "2026-04-19T11:00:00Z",
+                      "author": { "login": "bob" },
+                      "repository": { "nameWithOwner": "acme/repo" },
+                      "reviews": { "nodes": [ { "state": "APPROVED", "submittedAt": "2026-04-19T08:00:00Z", "author": { "login": "alice" } } ] },
+                      "commits": { "nodes": [ { "commit": { "committedDate": "2026-04-19T10:00:00Z" } } ] },
+                      "timelineItems": { "nodes": [] }
+                    }
+                  ]
+                },
+                "myOpen": { "issueCount": 0, "nodes": [] }
+              }
+            }
+            """#
+        )
+
+        let graphData = try XCTUnwrap(response.data)
+        let buckets = ReviewBucketsBuilder().build(from: graphData, host: "github.com", requiredApprovals: 2)
+        let pr = try XCTUnwrap(buckets.needsReReview.first)
+        XCTAssertEqual(
+            pr.displayState(requiredApprovals: 2, context: .needsReReview),
+            .stale
         )
     }
 
@@ -562,7 +753,7 @@ final class ReviewBucketsBuilderTests: XCTestCase {
 
         let graphData = try XCTUnwrap(response.data)
         let buckets = ReviewBucketsBuilder().build(from: graphData, host: "github.com", requiredApprovals: 2)
-        let awaiting = try XCTUnwrap(buckets.awaitingReview.first)
+        let awaiting = try XCTUnwrap(buckets.needsReview.first)
         XCTAssertEqual(awaiting.author, "ghost")
     }
 
@@ -598,8 +789,8 @@ final class ReviewBucketsBuilderTests: XCTestCase {
 
         let graphData = try XCTUnwrap(response.data)
         let buckets = ReviewBucketsBuilder().build(from: graphData, host: "github.com", requiredApprovals: 2)
-        XCTAssertEqual(buckets.awaitingReview.first?.isDraft, true)
-        XCTAssertTrue(buckets.filtered(includeDrafts: false).awaitingReview.isEmpty)
+        XCTAssertEqual(buckets.needsReview.first?.isDraft, true)
+        XCTAssertTrue(buckets.filtered(includeDrafts: false).needsReview.isEmpty)
     }
 
     func testDecodesNodeWithMissingReviewsAndCommitsConnections() throws {
@@ -636,7 +827,7 @@ final class ReviewBucketsBuilderTests: XCTestCase {
 
         let graphData = try XCTUnwrap(response.data)
         let buckets = ReviewBucketsBuilder().build(from: graphData, host: "github.com", requiredApprovals: 2)
-        let awaiting = try XCTUnwrap(buckets.awaitingReview.first)
+        let awaiting = try XCTUnwrap(buckets.needsReview.first)
         XCTAssertEqual(awaiting.number, 77)
         XCTAssertEqual(awaiting.approvals, 0)
         XCTAssertFalse(awaiting.updatedSinceReview)
@@ -674,7 +865,7 @@ final class ReviewBucketsBuilderTests: XCTestCase {
 
         let graphData = try XCTUnwrap(response.data)
         let buckets = ReviewBucketsBuilder().build(from: graphData, host: "github.com", requiredApprovals: 2)
-        XCTAssertEqual(buckets.awaitingReview.map(\.number), [78])
+        XCTAssertEqual(buckets.needsReview.map(\.number), [78])
     }
 
     private func fixtureURL(named name: String) -> URL {
@@ -697,16 +888,20 @@ private struct PendingReviewsFixture: Decodable {
 
     let user: String
     let host: String
-    let awaitingReview: [PullRequestFixture]
-    let reviewedNotApproved: [PullRequestFixture]
-    let myOpenNeedingAttention: [PullRequestFixture]
+    let needsReview: [PullRequestFixture]
+    let needsReReview: [PullRequestFixture]
+    let myOpenWaitingOnReviewers: [PullRequestFixture]
+    let myOpenBlockedOnYou: [PullRequestFixture]
+    let myOpenEnoughApprovals: [PullRequestFixture]
 
     enum CodingKeys: String, CodingKey {
         case user
         case host
-        case awaitingReview = "awaiting_review"
-        case reviewedNotApproved = "reviewed_not_approved"
-        case myOpenNeedingAttention = "my_open_needing_attention"
+        case needsReview = "needs_review"
+        case needsReReview = "needs_rereview"
+        case myOpenWaitingOnReviewers = "my_open_waiting_on_reviewers"
+        case myOpenBlockedOnYou = "my_open_blocked_on_you"
+        case myOpenEnoughApprovals = "my_open_enough_approvals"
     }
 }
 

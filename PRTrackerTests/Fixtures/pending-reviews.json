@@ -1,7 +1,7 @@
 {
   "user": "alice",
   "host": "github.com",
-  "awaiting_review": [
+  "needs_review": [
     {
       "number": 101,
       "title": "Refactor review pipeline",
@@ -18,7 +18,7 @@
       "lastCommitDate": "2026-04-19T10:45:00Z"
     }
   ],
-  "reviewed_not_approved": [
+  "needs_rereview": [
     {
       "number": 55,
       "title": "Update release checks",
@@ -35,7 +35,7 @@
       "lastCommitDate": "2026-04-18T12:30:00Z"
     }
   ],
-  "my_open_needing_attention": [
+  "my_open_waiting_on_reviewers": [
     {
       "number": 201,
       "title": "Re-review owed after addressing comments",
@@ -65,6 +65,40 @@
       "isReReview": false,
       "reviewRequestedAt": null,
       "lastCommitDate": "2026-04-19T07:30:00Z"
+    }
+  ],
+  "my_open_blocked_on_you": [
+    {
+      "number": 202,
+      "title": "Changes requested, not yet addressed",
+      "url": "https://github.com/acme/web/pull/202",
+      "updatedAt": "2026-04-19T05:00:00Z",
+      "repository": "acme/web",
+      "author": "alice",
+      "isDraft": false,
+      "latestReviewState": "CHANGES_REQUESTED",
+      "approvals": 0,
+      "updatedSinceReview": false,
+      "isReReview": false,
+      "reviewRequestedAt": null,
+      "lastCommitDate": "2026-04-19T03:00:00Z"
+    }
+  ],
+  "my_open_enough_approvals": [
+    {
+      "number": 203,
+      "title": "Already approved enough, no new push",
+      "url": "https://github.com/acme/web/pull/203",
+      "updatedAt": "2026-04-19T05:30:00Z",
+      "repository": "acme/web",
+      "author": "alice",
+      "isDraft": false,
+      "latestReviewState": "APPROVED",
+      "approvals": 2,
+      "updatedSinceReview": false,
+      "isReReview": false,
+      "reviewRequestedAt": null,
+      "lastCommitDate": "2026-04-19T04:00:00Z"
     }
   ],
   "totals": {

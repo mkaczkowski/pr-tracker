@@ -4,8 +4,8 @@ import Observation
 @MainActor
 enum MenuBarIconState {
     case idle
-    case hasAwaiting
-    case hasStaleOrUpdated
+    case needsReview
+    case needsReReview
     case error
 }
 
@@ -190,11 +190,11 @@ final class AppModel {
         case .error, .unauthenticated:
             return .error
         case .loaded, .offline:
-            if buckets.hasUpdatedSinceReview {
-                return .hasStaleOrUpdated
+            if buckets.needsReReview.isEmpty == false {
+                return .needsReReview
             }
-            if buckets.awaitingReview.isEmpty == false {
-                return .hasAwaiting
+            if buckets.needsReview.isEmpty == false {
+                return .needsReview
             }
             return .idle
         case .idle, .loading:
@@ -202,8 +202,8 @@ final class AppModel {
         }
     }
 
-    var awaitingCount: Int {
-        visibleBuckets.awaitingReview.count
+    var reviewerAttentionCount: Int {
+        visibleBuckets.needsReview.count + visibleBuckets.needsReReview.count
     }
 
     var visibleBuckets: ReviewBuckets {
@@ -398,7 +398,7 @@ final class AppModel {
 
         let host = reminderHost
         let eligibleKeys = Set(
-            (buckets.awaitingReview + buckets.reviewedNotApproved)
+            (buckets.needsReview + buckets.needsReReview)
                 .filter { $0.isAuthored(by: viewer) == false }
                 .map { $0.reminderKey(host: host) }
         )
@@ -450,12 +450,16 @@ final class AppModel {
 private extension PullRequestListContext {
     var id: String {
         switch self {
-        case .awaitingReview:
-            return "awaiting"
-        case .reviewedNotApproved:
-            return "reviewed"
-        case .myOpenNeedingAttention:
-            return "my-open"
+        case .needsReview:
+            return "needs-review"
+        case .needsReReview:
+            return "needs-rereview"
+        case .myOpenWaitingOnReviewers:
+            return "my-open-waiting"
+        case .myOpenBlockedOnYou:
+            return "my-open-blocked"
+        case .myOpenEnoughApprovals:
+            return "my-open-ready"
         }
     }
 }

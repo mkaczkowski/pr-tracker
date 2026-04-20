@@ -25,16 +25,16 @@ actor SeenStateStore: SeenStateStoring {
     func apply(current buckets: ReviewBuckets) -> SeenStateDiff {
         var persisted = loadPersistedState()
 
-        let currentAwaitingKeys = Set(buckets.awaitingReview.map(Self.makeKey))
-        let currentAllPRs = buckets.awaitingReview + buckets.reviewedNotApproved
-        let currentByID = Dictionary(uniqueKeysWithValues: currentAllPRs.map { ($0.id, $0) })
+        let currentNeedsReviewKeys = Set(buckets.needsReview.map(Self.makeKey))
+        let currentReviewerPRs = buckets.needsReview + buckets.needsReReview
+        let currentByID = Dictionary(uniqueKeysWithValues: currentReviewerPRs.map { ($0.id, $0) })
 
-        let newAwaiting = buckets.awaitingReview.filter { pullRequest in
+        let newAwaiting = buckets.needsReview.filter { pullRequest in
             let key = Self.makeKey(from: pullRequest)
             return persisted.awaitingKeys.contains(key) == false
         }
 
-        let newUpdated = currentAllPRs.filter { pullRequest in
+        let newUpdated = currentReviewerPRs.filter { pullRequest in
             let previous = persisted.updatedStateByPRID[pullRequest.id] ?? false
             return pullRequest.updatedSinceReview && previous == false
         }
@@ -43,11 +43,11 @@ actor SeenStateStore: SeenStateStoring {
         let activeIDs = Set(currentByID.keys)
         persisted.updatedStateByPRID = persisted.updatedStateByPRID.filter { activeIDs.contains($0.key) }
 
-        for pullRequest in currentAllPRs {
+        for pullRequest in currentReviewerPRs {
             persisted.updatedStateByPRID[pullRequest.id] = pullRequest.updatedSinceReview
         }
 
-        persisted.awaitingKeys = currentAwaitingKeys
+        persisted.awaitingKeys = currentNeedsReviewKeys
         savePersistedState(persisted)
 
         return SeenStateDiff(

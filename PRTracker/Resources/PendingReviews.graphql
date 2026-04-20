@@ -3,9 +3,14 @@ query($qAwaiting: String!, $qReviewed: String!, $qMyOpen: String!, $n: Int!) {
   awaiting: search(type: ISSUE, query: $qAwaiting, first: $n) {
     issueCount
     nodes { ... on PullRequest {
-      number title url updatedAt isDraft
+      number title url updatedAt isDraft reviewDecision
       author { login }
       repository { nameWithOwner }
+      reviewRequests(first: 10) {
+        nodes {
+          requestedReviewer { ... on User { login } }
+        }
+      }
       reviews(last: 50) {
         nodes { state submittedAt author { login } }
       }
@@ -25,9 +30,14 @@ query($qAwaiting: String!, $qReviewed: String!, $qMyOpen: String!, $n: Int!) {
   reviewed: search(type: ISSUE, query: $qReviewed, first: $n) {
     issueCount
     nodes { ... on PullRequest {
-      number title url updatedAt isDraft
+      number title url updatedAt isDraft reviewDecision
       author { login }
       repository { nameWithOwner }
+      reviewRequests(first: 10) {
+        nodes {
+          requestedReviewer { ... on User { login } }
+        }
+      }
       reviews(last: 50) {
         nodes { state submittedAt author { login } }
       }
@@ -47,9 +57,14 @@ query($qAwaiting: String!, $qReviewed: String!, $qMyOpen: String!, $n: Int!) {
   myOpen: search(type: ISSUE, query: $qMyOpen, first: $n) {
     issueCount
     nodes { ... on PullRequest {
-      number title url updatedAt isDraft
+      number title url updatedAt isDraft reviewDecision
       author { login }
       repository { nameWithOwner }
+      reviewRequests(first: 10) {
+        nodes {
+          requestedReviewer { ... on User { login } }
+        }
+      }
       reviews(last: 50) {
         nodes { state submittedAt author { login } }
       }

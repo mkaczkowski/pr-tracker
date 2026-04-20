@@ -12,8 +12,15 @@ struct ReviewBucketsBuilder: Sendable {
         let pullRequest: PullRequest
     }
 
+    private enum MyOpenBucket: Sendable {
+        case waitingOnReviewers
+        case blockedOnYou
+        case enoughApprovals
+    }
+
     private struct MyOpenCandidate {
         let pullRequest: PullRequest
+        let bucket: MyOpenBucket
         let needsReReview: Bool
     }
 
@@ -24,33 +31,45 @@ struct ReviewBucketsBuilder: Sendable {
     ) -> ReviewBuckets {
         let user = response.viewer.login
 
-        let awaiting = response.awaiting.nodes
+        let needsReview = response.awaiting.nodes
             .compactMap { node in
                 buildAwaitingCandidate(node: node, user: user)
             }
             .sorted(by: compareAwaiting)
             .map(\.pullRequest)
 
-        let reviewed = response.reviewed.nodes
+        let needsReReview = response.reviewed.nodes
             .compactMap { node in
                 buildReviewedCandidate(node: node, user: user)
             }
             .sorted(by: compareReviewed)
             .map(\.pullRequest)
 
-        let myOpen = response.myOpen.nodes
+        let myOpenCandidates = response.myOpen.nodes
             .compactMap { node in
                 buildMyOpenCandidate(node: node, requiredApprovals: requiredApprovals)
             }
-            .sorted(by: compareMyOpen)
+        let myOpenWaitingOnReviewers = myOpenCandidates
+            .filter { $0.bucket == .waitingOnReviewers }
+            .sorted(by: compareMyOpenWaitingOnReviewers)
+            .map(\.pullRequest)
+        let myOpenBlockedOnYou = myOpenCandidates
+            .filter { $0.bucket == .blockedOnYou }
+            .sorted(by: compareMyOpenBlockedOnYou)
+            .map(\.pullRequest)
+        let myOpenEnoughApprovals = myOpenCandidates
+            .filter { $0.bucket == .enoughApprovals }
+            .sorted(by: compareMyOpenEnoughApprovals)
             .map(\.pullRequest)
 
         return ReviewBuckets(
             user: user,
             host: host,
-            awaitingReview: awaiting,
-            reviewedNotApproved: reviewed,
-            myOpenNeedingAttention: myOpen,
+            needsReview: needsReview,
+            needsReReview: needsReReview,
+            myOpenWaitingOnReviewers: myOpenWaitingOnReviewers,
+            myOpenBlockedOnYou: myOpenBlockedOnYou,
+            myOpenEnoughApprovals: myOpenEnoughApprovals,
             totals: BucketTotals(awaiting: response.awaiting.issueCount, reviewed: response.reviewed.issueCount),
             awaitingTruncated: response.awaiting.issueCount > searchLimit,
             reviewedTruncated: response.reviewed.issueCount > searchLimit,
@@ -91,6 +110,7 @@ struct ReviewBucketsBuilder: Sendable {
             approvals: approvalCount(reviews: node.reviews.nodes),
             updatedSinceReview: updatedSinceReview,
             isReReview: latestMyReview != nil,
+            isInMergeQueue: false,
             reviewRequestedAt: reviewRequestedAt,
             lastCommitDate: lastCommitDate
         )
@@ -110,10 +130,14 @@ struct ReviewBucketsBuilder: Sendable {
             return nil
         }
 
+        let author = node.author?.login ?? "ghost"
+        guard author.caseInsensitiveCompare(user) != .orderedSame else {
+            return nil
+        }
+
         guard let latestMyReview = latestReview(for: user, reviews: node.reviews.nodes),
               let stateText = latestMyReview.state,
-              let latestState = ReviewState(rawValue: stateText),
-              latestState != .approved else {
+              let latestState = ReviewState(rawValue: stateText) else {
             return nil
         }
 
@@ -129,18 +153,31 @@ struct ReviewBucketsBuilder: Sendable {
             updatedSinceReview = false
         }
 
+        guard updatedSinceReview, latestState != .dismissed else {
+            return nil
+        }
+
+        guard shouldSurfaceForReReview(
+            latestState: latestState,
+            user: user,
+            node: node
+        ) else {
+            return nil
+        }
+
         let pullRequest = PullRequest(
             number: number,
             title: title,
             url: parseURL(node.url),
             updatedAt: DateDecoding.parse(node.updatedAt),
             repository: repository,
-            author: node.author?.login ?? "ghost",
+            author: author,
             isDraft: node.isDraft,
             latestReviewState: latestState,
             approvals: approvalCount(reviews: node.reviews.nodes),
             updatedSinceReview: updatedSinceReview,
-            isReReview: false,
+            isReReview: true,
+            isInMergeQueue: false,
             reviewRequestedAt: reviewRequestedAt,
             lastCommitDate: lastCommitDate
         )
@@ -148,13 +185,12 @@ struct ReviewBucketsBuilder: Sendable {
         return ReviewedCandidate(pullRequest: pullRequest)
     }
 
-    /// Builds a `PullRequest` for the "my open PRs waiting on reviewers" bucket.
+    /// Builds a `PullRequest` for one of the authored-PR action buckets.
     ///
-    /// A PR qualifies when the ball is in the reviewers' court — that is:
-    ///   * The latest non-author review is *not* `CHANGES_REQUESTED` without a
-    ///     follow-up push (those are blocked on the author), AND
-    ///   * the PR either still needs more approvals, or new commits have landed
-    ///     since the most recent non-author review (so a re-review is owed).
+    /// The author-facing buckets answer three questions:
+    ///   * Is the PR blocked on the author to address requested changes?
+    ///   * Is it still waiting on reviewers to look or re-look?
+    ///   * Has it already collected enough approvals?
     private func buildMyOpenCandidate(
         node: PullRequestNode,
         requiredApprovals: Int
@@ -183,15 +219,20 @@ struct ReviewBucketsBuilder: Sendable {
             return commitDate > reviewDate
         }()
 
-        // Changes requested and the author hasn't pushed anything since →
-        // the ball is in the author's court, not the reviewers'.
-        if latestNonAuthorState == .changesRequested, pushedSinceReview == false {
-            return nil
-        }
-
         let approvals = approvalCount(reviews: node.reviews.nodes)
         let needsMoreApprovals = approvals < requiredApprovals
-        guard needsMoreApprovals || pushedSinceReview else {
+        let isReadyForMerge = approvals >= requiredApprovals
+            && pushedSinceReview == false
+            && latestNonAuthorState != .pending
+
+        let bucket: MyOpenBucket
+        if latestNonAuthorState == .changesRequested, pushedSinceReview == false {
+            bucket = .blockedOnYou
+        } else if isReadyForMerge {
+            bucket = .enoughApprovals
+        } else if needsMoreApprovals || pushedSinceReview || latestNonAuthorState == .pending || latestNonAuthorReview == nil {
+            bucket = .waitingOnReviewers
+        } else {
             return nil
         }
 
@@ -207,11 +248,16 @@ struct ReviewBucketsBuilder: Sendable {
             approvals: approvals,
             updatedSinceReview: pushedSinceReview,
             isReReview: false,
+            isInMergeQueue: false,
             reviewRequestedAt: nil,
             lastCommitDate: lastCommitDate
         )
 
-        return MyOpenCandidate(pullRequest: pullRequest, needsReReview: pushedSinceReview)
+        return MyOpenCandidate(
+            pullRequest: pullRequest,
+            bucket: bucket,
+            needsReReview: pushedSinceReview
+        )
     }
 
     private func approvalCount(reviews: [PullRequestNode.ReviewConnection.ReviewNode]) -> Int {
@@ -271,6 +317,37 @@ struct ReviewBucketsBuilder: Sendable {
         return DateDecoding.parse(latestEvent?.createdAt)
     }
 
+    private func shouldSurfaceForReReview(
+        latestState: ReviewState,
+        user: String,
+        node: PullRequestNode
+    ) -> Bool {
+        if hasOutstandingReviewRequests(forSomeoneOtherThan: user, node: node) {
+            return false
+        }
+
+        // When someone else's changes request is currently blocking the PR,
+        // a stale approval from the viewer is usually informational, not
+        // actionable for the viewer.
+        if latestState == .approved, node.reviewDecision == ReviewState.changesRequested.rawValue {
+            return false
+        }
+
+        return true
+    }
+
+    private func hasOutstandingReviewRequests(
+        forSomeoneOtherThan user: String,
+        node: PullRequestNode
+    ) -> Bool {
+        node.reviewRequests.nodes.contains { reviewRequest in
+            guard let login = reviewRequest.requestedReviewer?.login else {
+                return false
+            }
+            return login.caseInsensitiveCompare(user) != .orderedSame
+        }
+    }
+
     private func parseURL(_ value: String?) -> URL? {
         guard let value else { return nil }
         return URL(string: value)
@@ -293,9 +370,6 @@ struct ReviewBucketsBuilder: Sendable {
     }
 
     private func compareReviewed(_ lhs: ReviewedCandidate, _ rhs: ReviewedCandidate) -> Bool {
-        if lhs.pullRequest.updatedSinceReview != rhs.pullRequest.updatedSinceReview {
-            return lhs.pullRequest.updatedSinceReview
-        }
         if let decision = preferDescending(lhs.pullRequest.lastCommitDate, rhs.pullRequest.lastCommitDate) {
             return decision
         }
@@ -308,7 +382,7 @@ struct ReviewBucketsBuilder: Sendable {
         return fallback(lhs.pullRequest, rhs.pullRequest)
     }
 
-    private func compareMyOpen(_ lhs: MyOpenCandidate, _ rhs: MyOpenCandidate) -> Bool {
+    private func compareMyOpenWaitingOnReviewers(_ lhs: MyOpenCandidate, _ rhs: MyOpenCandidate) -> Bool {
         if lhs.needsReReview != rhs.needsReReview {
             return lhs.needsReReview
         }
@@ -320,6 +394,26 @@ struct ReviewBucketsBuilder: Sendable {
         }
         if let decision = preferAscending(lhs.pullRequest.lastCommitDate, rhs.pullRequest.lastCommitDate) {
             return decision
+        }
+        return fallback(lhs.pullRequest, rhs.pullRequest)
+    }
+
+    private func compareMyOpenBlockedOnYou(_ lhs: MyOpenCandidate, _ rhs: MyOpenCandidate) -> Bool {
+        if let decision = preferAscending(lhs.pullRequest.updatedAt, rhs.pullRequest.updatedAt) {
+            return decision
+        }
+        if let decision = preferAscending(lhs.pullRequest.lastCommitDate, rhs.pullRequest.lastCommitDate) {
+            return decision
+        }
+        return fallback(lhs.pullRequest, rhs.pullRequest)
+    }
+
+    private func compareMyOpenEnoughApprovals(_ lhs: MyOpenCandidate, _ rhs: MyOpenCandidate) -> Bool {
+        if let decision = preferDescending(lhs.pullRequest.updatedAt, rhs.pullRequest.updatedAt) {
+            return decision
+        }
+        if lhs.pullRequest.approvals != rhs.pullRequest.approvals {
+            return lhs.pullRequest.approvals > rhs.pullRequest.approvals
         }
         return fallback(lhs.pullRequest, rhs.pullRequest)
     }

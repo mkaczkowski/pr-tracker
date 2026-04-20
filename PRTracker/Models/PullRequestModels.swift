@@ -56,9 +56,11 @@ enum DisplayState: String, Codable, Sendable {
 }
 
 enum PullRequestListContext: Equatable, Sendable {
-    case awaitingReview
-    case reviewedNotApproved
-    case myOpenNeedingAttention
+    case needsReview
+    case needsReReview
+    case myOpenWaitingOnReviewers
+    case myOpenBlockedOnYou
+    case myOpenEnoughApprovals
 }
 
 struct PullRequest: Codable, Hashable, Identifiable, Sendable {
@@ -73,6 +75,7 @@ struct PullRequest: Codable, Hashable, Identifiable, Sendable {
     let approvals: Int
     let updatedSinceReview: Bool
     let isReReview: Bool
+    let isInMergeQueue: Bool
     let reviewRequestedAt: Date?
     let lastCommitDate: Date?
 
@@ -85,10 +88,16 @@ struct PullRequest: Codable, Hashable, Identifiable, Sendable {
         context: PullRequestListContext
     ) -> DisplayState {
         switch context {
-        case .myOpenNeedingAttention:
-            return authorDisplayState()
-        case .awaitingReview, .reviewedNotApproved:
-            return reviewerDisplayState(requiredApprovals: requiredApprovals)
+        case .needsReview:
+            return reviewerNeedsReviewDisplayState()
+        case .needsReReview:
+            return .stale
+        case .myOpenWaitingOnReviewers:
+            return authorWaitingDisplayState()
+        case .myOpenBlockedOnYou:
+            return .changesRequested
+        case .myOpenEnoughApprovals:
+            return .approved
         }
     }
 
@@ -96,18 +105,23 @@ struct PullRequest: Codable, Hashable, Identifiable, Sendable {
         requiredApprovals: Int,
         context: PullRequestListContext
     ) -> Bool {
-        approvals >= requiredApprovals && !(context == .myOpenNeedingAttention && updatedSinceReview)
-    }
+        guard approvals >= requiredApprovals else { return false }
 
-    private func reviewerDisplayState(requiredApprovals: Int) -> DisplayState {
-        if latestReviewState == .approved, approvals < requiredApprovals {
-            return .awaiting
+        switch context {
+        case .needsReview, .needsReReview:
+            return true
+        case .myOpenWaitingOnReviewers, .myOpenBlockedOnYou:
+            return false
+        case .myOpenEnoughApprovals:
+            return true
         }
-
-        return DisplayState(reviewState: latestReviewState, updatedSinceReview: updatedSinceReview)
     }
 
-    private func authorDisplayState() -> DisplayState {
+    private func reviewerNeedsReviewDisplayState() -> DisplayState {
+        isReReview ? .stale : .awaiting
+    }
+
+    private func authorWaitingDisplayState() -> DisplayState {
         if updatedSinceReview {
             return .stale
         }
@@ -126,7 +140,7 @@ struct PullRequest: Codable, Hashable, Identifiable, Sendable {
     func canConfigureReminder(context: PullRequestListContext, viewerLogin: String) -> Bool {
         let normalizedViewer = viewerLogin.trimmingCharacters(in: .whitespacesAndNewlines)
         guard normalizedViewer.isEmpty == false else { return false }
-        guard context != .myOpenNeedingAttention else { return false }
+        guard context.isReviewerContext else { return false }
         return isAuthored(by: normalizedViewer) == false
     }
 
@@ -147,9 +161,11 @@ struct BucketTotals: Codable, Hashable, Sendable {
 struct ReviewBuckets: Codable, Hashable, Sendable {
     let user: String
     let host: String
-    let awaitingReview: [PullRequest]
-    let reviewedNotApproved: [PullRequest]
-    let myOpenNeedingAttention: [PullRequest]
+    let needsReview: [PullRequest]
+    let needsReReview: [PullRequest]
+    let myOpenWaitingOnReviewers: [PullRequest]
+    let myOpenBlockedOnYou: [PullRequest]
+    let myOpenEnoughApprovals: [PullRequest]
     let totals: BucketTotals
     let awaitingTruncated: Bool
     let reviewedTruncated: Bool
@@ -158,18 +174,16 @@ struct ReviewBuckets: Codable, Hashable, Sendable {
     static let empty = ReviewBuckets(
         user: "",
         host: "",
-        awaitingReview: [],
-        reviewedNotApproved: [],
-        myOpenNeedingAttention: [],
+        needsReview: [],
+        needsReReview: [],
+        myOpenWaitingOnReviewers: [],
+        myOpenBlockedOnYou: [],
+        myOpenEnoughApprovals: [],
         totals: BucketTotals(awaiting: 0, reviewed: 0),
         awaitingTruncated: false,
         reviewedTruncated: false,
         myOpenTruncated: false
     )
-
-    var hasUpdatedSinceReview: Bool {
-        (awaitingReview + reviewedNotApproved).contains(where: \.updatedSinceReview)
-    }
 
     func filtered(includeDrafts: Bool) -> ReviewBuckets {
         guard includeDrafts == false else {
@@ -179,14 +193,27 @@ struct ReviewBuckets: Codable, Hashable, Sendable {
         return ReviewBuckets(
             user: user,
             host: host,
-            awaitingReview: awaitingReview.filter { $0.isDraft == false },
-            reviewedNotApproved: reviewedNotApproved.filter { $0.isDraft == false },
-            myOpenNeedingAttention: myOpenNeedingAttention.filter { $0.isDraft == false },
+            needsReview: needsReview.filter { $0.isDraft == false },
+            needsReReview: needsReReview.filter { $0.isDraft == false },
+            myOpenWaitingOnReviewers: myOpenWaitingOnReviewers.filter { $0.isDraft == false },
+            myOpenBlockedOnYou: myOpenBlockedOnYou.filter { $0.isDraft == false },
+            myOpenEnoughApprovals: myOpenEnoughApprovals.filter { $0.isDraft == false },
             totals: totals,
             awaitingTruncated: awaitingTruncated,
             reviewedTruncated: reviewedTruncated,
             myOpenTruncated: myOpenTruncated
         )
+    }
+}
+
+private extension PullRequestListContext {
+    var isReviewerContext: Bool {
+        switch self {
+        case .needsReview, .needsReReview:
+            return true
+        case .myOpenWaitingOnReviewers, .myOpenBlockedOnYou, .myOpenEnoughApprovals:
+            return false
+        }
     }
 }
 

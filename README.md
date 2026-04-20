@@ -1,6 +1,19 @@
 # PRTracker
 
-macOS menu bar app for GitHub PR review triage: **Awaiting your review** and **Reviewed, not currently approved** (same idea as `gh-pending-reviews`). One GraphQL request per refresh; approvals, stale pushes, and age are computed locally.
+PRTracker is a small macOS menu bar app for staying on top of GitHub pull requests that need your attention. It keeps your review queue visible without needing to camp in GitHub all day.
+
+It focuses on a few practical things:
+
+- **Needs your review**: PRs where you are currently requested.
+- **Needs re-review**: PRs you reviewed that changed since your review.
+- **Your PRs blocked on you**: authored PRs with requested changes you still need to address.
+- **Your PRs waiting on reviewers**: authored PRs that still need reviewer attention.
+- **Your PRs with enough approvals**: authored PRs that have met the configured approval threshold.
+- **Per-PR reminders**: set quick or custom reminders to come back and review later.
+- **System notifications**: optional review alerts and reminder notifications while the app is running.
+- **Useful controls**: configure GitHub host/org, required approvals, refresh interval, and launch at login.
+
+The app uses one GraphQL request per refresh, then computes approvals, stale pushes, and review age locally.
 
 **Needs:** macOS 14+, [GitHub CLI](https://cli.github.com/) (`brew install gh`) with `gh auth login` (use `--hostname` for GitHub Enterprise; set the host in app Settings).
 

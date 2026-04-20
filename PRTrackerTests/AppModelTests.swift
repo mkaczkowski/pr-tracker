@@ -24,7 +24,7 @@ final class AppModelTests: XCTestCase {
         let buckets = makeBuckets()
         let pending = StubPendingReviewsService(result: .success(.init(buckets: buckets, rateLimitRemaining: 42)))
         let seen = StubSeenStateStore(
-            diff: SeenStateDiff(newlyAwaiting: buckets.awaitingReview, newlyUpdatedSinceReview: [])
+            diff: SeenStateDiff(newlyAwaiting: buckets.needsReview, newlyUpdatedSinceReview: [])
         )
         let notifications = StubNotificationService()
 
@@ -159,9 +159,11 @@ final class AppModelTests: XCTestCase {
         let buckets = ReviewBuckets(
             user: "alice",
             host: "github.com",
-            awaitingReview: [draft, ready],
-            reviewedNotApproved: [],
-            myOpenNeedingAttention: [],
+            needsReview: [draft, ready],
+            needsReReview: [],
+            myOpenWaitingOnReviewers: [],
+            myOpenBlockedOnYou: [],
+            myOpenEnoughApprovals: [],
             totals: BucketTotals(awaiting: 2, reviewed: 0),
             awaitingTruncated: false,
             reviewedTruncated: false,
@@ -173,9 +175,9 @@ final class AppModelTests: XCTestCase {
 
         _ = await model.refresh(reason: "draft-filter")
 
-        XCTAssertEqual(model.buckets.awaitingReview.map(\.number), [11, 12])
-        XCTAssertEqual(model.visibleBuckets.awaitingReview.map(\.number), [12])
-        XCTAssertEqual(model.awaitingCount, 1)
+        XCTAssertEqual(model.buckets.needsReview.map(\.number), [11, 12])
+        XCTAssertEqual(model.visibleBuckets.needsReview.map(\.number), [12])
+        XCTAssertEqual(model.reviewerAttentionCount, 1)
     }
 
     func testSetIncludeDraftPullRequestsPersistsPreference() {
@@ -206,18 +208,20 @@ final class AppModelTests: XCTestCase {
         model.buckets = ReviewBuckets(
             user: "alice",
             host: "github.com",
-            awaitingReview: [reviewerPR, authoredByMe],
-            reviewedNotApproved: [],
-            myOpenNeedingAttention: [authoredByMe],
+            needsReview: [reviewerPR, authoredByMe],
+            needsReReview: [],
+            myOpenWaitingOnReviewers: [authoredByMe],
+            myOpenBlockedOnYou: [],
+            myOpenEnoughApprovals: [],
             totals: BucketTotals(awaiting: 2, reviewed: 0),
             awaitingTruncated: false,
             reviewedTruncated: false,
             myOpenTruncated: false
         )
 
-        XCTAssertTrue(model.canSetReminder(for: reviewerPR, context: .awaitingReview))
-        XCTAssertFalse(model.canSetReminder(for: authoredByMe, context: .awaitingReview))
-        XCTAssertFalse(model.canSetReminder(for: authoredByMe, context: .myOpenNeedingAttention))
+        XCTAssertTrue(model.canSetReminder(for: reviewerPR, context: .needsReview))
+        XCTAssertFalse(model.canSetReminder(for: authoredByMe, context: .needsReview))
+        XCTAssertFalse(model.canSetReminder(for: authoredByMe, context: .myOpenWaitingOnReviewers))
     }
 
     func testDueReminderPostsNotificationAndClearsReminder() async {
@@ -235,10 +239,10 @@ final class AppModelTests: XCTestCase {
         )
         model.buckets = buckets
 
-        let pullRequest = buckets.awaitingReview[0]
+        let pullRequest = buckets.needsReview[0]
         model.setReminder(
             for: pullRequest,
-            context: .awaitingReview,
+            context: .needsReview,
             at: Date().addingTimeInterval(120)
         )
         try? await Task.sleep(nanoseconds: 80_000_000)
@@ -270,10 +274,10 @@ final class AppModelTests: XCTestCase {
         )
         model.buckets = buckets
 
-        let pullRequest = buckets.awaitingReview[0]
+        let pullRequest = buckets.needsReview[0]
         model.setReminder(
             for: pullRequest,
-            context: .awaitingReview,
+            context: .needsReview,
             at: Date().addingTimeInterval(120)
         )
         try? await Task.sleep(nanoseconds: 80_000_000)
@@ -296,9 +300,11 @@ final class AppModelTests: XCTestCase {
         let emptyBuckets = ReviewBuckets(
             user: "alice",
             host: "github.com",
-            awaitingReview: [],
-            reviewedNotApproved: [],
-            myOpenNeedingAttention: [],
+            needsReview: [],
+            needsReReview: [],
+            myOpenWaitingOnReviewers: [],
+            myOpenBlockedOnYou: [],
+            myOpenEnoughApprovals: [],
             totals: BucketTotals(awaiting: 0, reviewed: 0),
             awaitingTruncated: false,
             reviewedTruncated: false,
@@ -317,10 +323,10 @@ final class AppModelTests: XCTestCase {
         )
 
         _ = await model.refresh(reason: "initial")
-        let pullRequest = initialBuckets.awaitingReview[0]
+        let pullRequest = initialBuckets.needsReview[0]
         model.setReminder(
             for: pullRequest,
-            context: .awaitingReview,
+            context: .needsReview,
             at: Date().addingTimeInterval(120)
         )
         try? await Task.sleep(nanoseconds: 80_000_000)
@@ -347,10 +353,10 @@ final class AppModelTests: XCTestCase {
         )
         model.buckets = buckets
 
-        let pullRequest = buckets.awaitingReview[0]
+        let pullRequest = buckets.needsReview[0]
         model.setReminder(
             for: pullRequest,
-            context: .awaitingReview,
+            context: .needsReview,
             at: Date().addingTimeInterval(120)
         )
         try? await Task.sleep(nanoseconds: 80_000_000)
@@ -390,9 +396,11 @@ final class AppModelTests: XCTestCase {
         ReviewBuckets(
             user: "alice",
             host: "github.com",
-            awaitingReview: [makePullRequest(number: 10, isDraft: false)],
-            reviewedNotApproved: [],
-            myOpenNeedingAttention: [],
+            needsReview: [makePullRequest(number: 10, isDraft: false)],
+            needsReReview: [],
+            myOpenWaitingOnReviewers: [],
+            myOpenBlockedOnYou: [],
+            myOpenEnoughApprovals: [],
             totals: BucketTotals(awaiting: 1, reviewed: 0),
             awaitingTruncated: false,
             reviewedTruncated: false,
@@ -413,6 +421,7 @@ final class AppModelTests: XCTestCase {
             approvals: 1,
             updatedSinceReview: false,
             isReReview: false,
+            isInMergeQueue: false,
             reviewRequestedAt: Date(timeIntervalSince1970: 900),
             lastCommitDate: Date(timeIntervalSince1970: 950)
         )

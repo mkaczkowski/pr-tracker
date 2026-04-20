@@ -10,10 +10,10 @@ struct MenuBarLabel: View {
             Image(systemName: "arrow.triangle.pull")
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(iconColor)
-                .symbolEffect(.bounce, value: model.awaitingCount)
+                .symbolEffect(.bounce, value: model.reviewerAttentionCount)
 
-            if model.awaitingCount > 0 {
-                Text("\(model.awaitingCount)")
+            if model.reviewerAttentionCount > 0 {
+                Text("\(model.reviewerAttentionCount)")
                     .font(.system(size: 9, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 5)
@@ -23,8 +23,8 @@ struct MenuBarLabel: View {
                     .transition(.scale.combined(with: .opacity))
             }
         }
-        .accessibilityLabel("Pending reviews: \(model.awaitingCount)")
-        .animation(.snappy(duration: 0.18), value: model.awaitingCount)
+        .accessibilityLabel("Pending reviews: \(model.reviewerAttentionCount)")
+        .animation(.snappy(duration: 0.18), value: model.reviewerAttentionCount)
         .overlay {
             GeometryReader { proxy in
                 StatusBarContextMenuOverlay(
@@ -46,9 +46,9 @@ struct MenuBarLabel: View {
         switch model.menuBarIconState {
         case .idle:
             return .secondary
-        case .hasAwaiting:
+        case .needsReview:
             return .blue
-        case .hasStaleOrUpdated:
+        case .needsReReview:
             return .orange
         case .error:
             return .red

@@ -26,6 +26,29 @@ struct GitHubGraphQLResponse: Decodable, Sendable {
 }
 
 struct PullRequestNode: Decodable, Sendable {
+    struct ReviewRequestConnection: Decodable, Sendable {
+        struct ReviewRequestNode: Decodable, Sendable {
+            struct RequestedReviewer: Decodable, Sendable {
+                let login: String?
+            }
+
+            let requestedReviewer: RequestedReviewer?
+        }
+
+        let nodes: [ReviewRequestNode]
+
+        init(nodes: [ReviewRequestNode]) {
+            self.nodes = nodes
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            nodes = try container.decodeIfPresent([ReviewRequestNode].self, forKey: .nodes) ?? []
+        }
+
+        private enum CodingKeys: String, CodingKey { case nodes }
+    }
+
     struct Author: Decodable, Sendable {
         let login: String?
     }
@@ -95,15 +118,38 @@ struct PullRequestNode: Decodable, Sendable {
         let nodes: [TimelineNode]
     }
 
+    struct AssigneeConnection: Decodable, Sendable {
+        struct AssigneeNode: Decodable, Sendable {
+            let login: String?
+            let name: String?
+        }
+
+        let nodes: [AssigneeNode]
+
+        init(nodes: [AssigneeNode]) {
+            self.nodes = nodes
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            nodes = try container.decodeIfPresent([AssigneeNode].self, forKey: .nodes) ?? []
+        }
+
+        private enum CodingKeys: String, CodingKey { case nodes }
+    }
+
     let number: Int?
     let title: String?
     let url: String?
     let updatedAt: String?
     let isDraft: Bool
+    let reviewDecision: String?
     let author: Author?
     let repository: Repository?
+    let reviewRequests: ReviewRequestConnection
     let reviews: ReviewConnection
     let commits: CommitConnection
+    let assignees: AssigneeConnection
     /// Optional because the `myOpen` GraphQL search does not fetch this connection
     /// (review-request events are only meaningful for PRs not authored by the viewer).
     let timelineItems: TimelineConnection?
@@ -114,10 +160,13 @@ struct PullRequestNode: Decodable, Sendable {
         url: String?,
         updatedAt: String?,
         isDraft: Bool,
+        reviewDecision: String?,
         author: Author?,
         repository: Repository?,
+        reviewRequests: ReviewRequestConnection,
         reviews: ReviewConnection,
         commits: CommitConnection,
+        assignees: AssigneeConnection,
         timelineItems: TimelineConnection?
     ) {
         self.number = number
@@ -125,10 +174,13 @@ struct PullRequestNode: Decodable, Sendable {
         self.url = url
         self.updatedAt = updatedAt
         self.isDraft = isDraft
+        self.reviewDecision = reviewDecision
         self.author = author
         self.repository = repository
+        self.reviewRequests = reviewRequests
         self.reviews = reviews
         self.commits = commits
+        self.assignees = assignees
         self.timelineItems = timelineItems
     }
 
@@ -139,17 +191,21 @@ struct PullRequestNode: Decodable, Sendable {
         url = try container.decodeIfPresent(String.self, forKey: .url)
         updatedAt = try container.decodeIfPresent(String.self, forKey: .updatedAt)
         isDraft = try container.decodeIfPresent(Bool.self, forKey: .isDraft) ?? false
+        reviewDecision = try container.decodeIfPresent(String.self, forKey: .reviewDecision)
         author = try container.decodeIfPresent(Author.self, forKey: .author)
         repository = try container.decodeIfPresent(Repository.self, forKey: .repository)
+        reviewRequests = try container.decodeIfPresent(ReviewRequestConnection.self, forKey: .reviewRequests)
+            ?? ReviewRequestConnection(nodes: [])
         // Treat a missing or null connection as an empty one so a single
         // inaccessible PR in the search results doesn't fail the whole decode.
         reviews = try container.decodeIfPresent(ReviewConnection.self, forKey: .reviews) ?? ReviewConnection(nodes: [])
         commits = try container.decodeIfPresent(CommitConnection.self, forKey: .commits) ?? CommitConnection(nodes: [])
+        assignees = try container.decodeIfPresent(AssigneeConnection.self, forKey: .assignees) ?? AssigneeConnection(nodes: [])
         timelineItems = try container.decodeIfPresent(TimelineConnection.self, forKey: .timelineItems)
     }
 
     private enum CodingKeys: String, CodingKey {
-        case number, title, url, updatedAt, isDraft, author, repository, reviews, commits, timelineItems
+        case number, title, url, updatedAt, isDraft, reviewDecision, author, repository, reviewRequests, reviews, commits, assignees, timelineItems
     }
 }
 
@@ -228,7 +284,7 @@ actor PendingReviewsService: PendingReviewsServing {
             query: query,
             variables: .init(
                 qAwaiting: "\(common) user-review-requested:@me",
-                qReviewed: "\(common) reviewed-by:@me -review-requested:@me",
+                qReviewed: "\(common) reviewed-by:@me -review-requested:@me -author:@me",
                 qMyOpen: "\(common) author:@me",
                 n: 100
             )
