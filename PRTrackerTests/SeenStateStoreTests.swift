@@ -95,6 +95,7 @@ final class SeenStateStoreTests: XCTestCase {
             updatedSinceReview: updatedSinceReview,
             isReReview: false,
             isInMergeQueue: false,
+            checksStatus: nil,
             reviewRequestedAt: Date(timeIntervalSince1970: 900),
             lastCommitDate: Date(timeIntervalSince1970: 950)
         )

@@ -40,7 +40,10 @@
             "nodes": [
               {
                 "commit": {
-                  "committedDate": "2026-04-19T10:45:00Z"
+                  "committedDate": "2026-04-19T10:45:00Z",
+                  "statusCheckRollup": {
+                    "state": "PENDING"
+                  }
                 }
               }
             ]
@@ -128,7 +131,10 @@
             "nodes": [
               {
                 "commit": {
-                  "committedDate": "2026-04-19T07:30:00Z"
+                  "committedDate": "2026-04-19T07:30:00Z",
+                  "statusCheckRollup": {
+                    "state": "PENDING"
+                  }
                 }
               }
             ]
@@ -161,7 +167,10 @@
             "nodes": [
               {
                 "commit": {
-                  "committedDate": "2026-04-19T08:45:00Z"
+                  "committedDate": "2026-04-19T08:45:00Z",
+                  "statusCheckRollup": {
+                    "state": "PENDING"
+                  }
                 }
               }
             ]
@@ -194,7 +203,10 @@
             "nodes": [
               {
                 "commit": {
-                  "committedDate": "2026-04-19T03:00:00Z"
+                  "committedDate": "2026-04-19T03:00:00Z",
+                  "statusCheckRollup": {
+                    "state": "FAILURE"
+                  }
                 }
               }
             ]
@@ -211,6 +223,14 @@
           },
           "repository": {
             "nameWithOwner": "acme/web"
+          },
+          "assignees": {
+            "nodes": [
+              {
+                "login": "mergeq",
+                "name": "MergeQ - MergeQ Bot"
+              }
+            ]
           },
           "reviews": {
             "nodes": [
@@ -234,7 +254,10 @@
             "nodes": [
               {
                 "commit": {
-                  "committedDate": "2026-04-19T04:00:00Z"
+                  "committedDate": "2026-04-19T04:00:00Z",
+                  "statusCheckRollup": {
+                    "state": "SUCCESS"
+                  }
                 }
               }
             ]

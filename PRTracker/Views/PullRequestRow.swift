@@ -12,6 +12,8 @@ struct PullRequestRow: View {
     private enum TimeChipKind: Hashable {
         case reviewRequested
         case lastPush
+        case checks
+        case mergeQueue
         case reminder
     }
 
@@ -28,6 +30,7 @@ struct PullRequestRow: View {
     @State private var hoveredTimeChip: TimeChipKind?
     private let numberColumnWidth: CGFloat = 44
     private let approvalsColumnWidth: CGFloat = 42
+    private let metadataIndicatorSize: CGFloat = 15
 
     private var isHovering: Bool { hoveredID == pullRequest.id }
     private var isClickable: Bool { pullRequest.url != nil }
@@ -233,6 +236,15 @@ struct PullRequestRow: View {
                 )
             }
 
+            if let checksStatus = pullRequest.checksStatus,
+               checksStatus != .pending {
+                checksStatusChip(checksStatus)
+            }
+
+            if pullRequest.isInMergeQueue {
+                mergeQueueChip
+            }
+
             if let reminder {
                 timeChip(
                     kind: .reminder,
@@ -274,6 +286,109 @@ struct PullRequestRow: View {
             }
         }
         .accessibilityLabel(tooltip)
+    }
+
+    private func checksStatusChip(_ status: ChecksStatus) -> some View {
+        Image(systemName: checksStatusSymbolName(status))
+            .symbolRenderingMode(.monochrome)
+            .font(.system(size: checksStatusFontSize(status), weight: checksStatusFontWeight(status)))
+            .foregroundStyle(checksStatusColor(status))
+            .frame(width: metadataIndicatorSize, height: metadataIndicatorSize)
+            .contentShape(Rectangle())
+            .overlay(alignment: .top) {
+                if hoveredTimeChip == .checks {
+                    HoverTooltip(text: checksStatusTooltip(status))
+                        .offset(y: -30)
+                        .zIndex(1)
+                }
+            }
+            .onHover { hovering in
+                if hovering {
+                    hoveredTimeChip = .checks
+                } else if hoveredTimeChip == .checks {
+                    hoveredTimeChip = nil
+                }
+            }
+            .accessibilityLabel(checksStatusTooltip(status))
+    }
+
+    private var mergeQueueChip: some View {
+        mergeQueueAvatar
+            .contentShape(Rectangle())
+            .overlay(alignment: .top) {
+                if hoveredTimeChip == .mergeQueue {
+                    HoverTooltip(text: "Already assigned to MergeQ and in the merge queue")
+                        .offset(y: -30)
+                        .zIndex(1)
+                }
+            }
+            .onHover { hovering in
+                if hovering {
+                    hoveredTimeChip = .mergeQueue
+                } else if hoveredTimeChip == .mergeQueue {
+                    hoveredTimeChip = nil
+                }
+            }
+            .accessibilityLabel("Already assigned to MergeQ and in the merge queue")
+    }
+
+    private func checksStatusSymbolName(_ status: ChecksStatus) -> String {
+        switch status {
+        case .passing:
+            return "checkmark.circle.fill"
+        case .pending:
+            return "ellipsis.circle"
+        case .failing:
+            return "xmark.circle.fill"
+        }
+    }
+
+    private func checksStatusColor(_ status: ChecksStatus) -> Color {
+        switch status {
+        case .passing:
+            return .green
+        case .pending:
+            return .secondary
+        case .failing:
+            return .red
+        }
+    }
+
+    private func checksStatusFontSize(_ status: ChecksStatus) -> CGFloat {
+        switch status {
+        case .pending:
+            return 13
+        case .passing, .failing:
+            return metadataIndicatorSize
+        }
+    }
+
+    private func checksStatusFontWeight(_ status: ChecksStatus) -> Font.Weight {
+        switch status {
+        case .pending:
+            return .regular
+        case .passing, .failing:
+            return .semibold
+        }
+    }
+
+    private func checksStatusTooltip(_ status: ChecksStatus) -> String {
+        switch status {
+        case .passing:
+            return "All checks passed"
+        case .pending:
+            return "Checks still running or not completed"
+        case .failing:
+            return "One or more checks failed"
+        }
+    }
+
+    private var mergeQueueAvatar: some View {
+        Image("MergeQBotAvatar")
+            .resizable()
+            .interpolation(.high)
+            .frame(width: metadataIndicatorSize, height: metadataIndicatorSize)
+            .clipShape(Circle())
     }
 
     /// Returns nil when the date is missing so the caller can omit the field

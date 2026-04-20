@@ -4,12 +4,18 @@ Guidance for AI agents when working in this repository.
 
 ## Project overview
 
-PRTracker is a macOS menu-bar (`MenuBarExtra`) SwiftUI app that surfaces two
-GitHub PR review buckets for the signed-in user:
+PRTracker is a macOS menu-bar (`MenuBarExtra`) SwiftUI app that surfaces
+action-oriented GitHub PR buckets for the signed-in user:
 
-- **Awaiting your review** — `user-review-requested:@me`
-- **Reviewed, not currently approved** — `reviewed-by:@me -review-requested:@me`,
-filtered to PRs whose latest review by the user is not `APPROVED`.
+- **Needs your review** — `user-review-requested:@me`
+- **Needs re-review** — `reviewed-by:@me -review-requested:@me -author:@me`,
+filtered to PRs that changed since the user's latest review
+- **Your PRs blocked on you** — latest non-author review is
+`CHANGES_REQUESTED` and the author has not pushed since
+- **Your PRs waiting on reviewers** — authored PRs that still need approvals
+or another review after a follow-up push
+- **Your PRs with enough approvals** — authored PRs that currently meet the
+configured approval threshold
 
 It pulls data with a single GitHub GraphQL request (`PendingReviews.graphql`)
 via the token returned from `gh auth token --hostname <host>`, then computes
@@ -139,8 +145,8 @@ fixture-driven test stays meaningful.
 
 ## Packaging
 
-- `.github/workflows/release.yml`: tag `v*` → `check-release-tag.sh` (vs **MARKETING_VERSION**) → tests →
-`package-unsigned.sh` → GitHub Release with the zip.
+- `.github/workflows/release.yml` runs on push of tags `v`* and uploads the same
+zip produced by `scripts/package-unsigned.sh` to GitHub Releases.
 - `scripts/package-unsigned.sh` builds Release with ad hoc signing, writes
 `build/PRTracker.app` and `build/PRTracker-macos-<version>-b<build>.zip`.
 - `scripts/notarize.sh <artifact>` wraps `xcrun notarytool submit --wait` and

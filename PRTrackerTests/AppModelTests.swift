@@ -422,6 +422,7 @@ final class AppModelTests: XCTestCase {
             updatedSinceReview: false,
             isReReview: false,
             isInMergeQueue: false,
+            checksStatus: nil,
             reviewRequestedAt: Date(timeIntervalSince1970: 900),
             lastCommitDate: Date(timeIntervalSince1970: 950)
         )

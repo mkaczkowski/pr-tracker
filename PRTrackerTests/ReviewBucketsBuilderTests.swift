@@ -44,16 +44,21 @@ final class ReviewBucketsBuilderTests: XCTestCase {
         XCTAssertEqual(reReview.latestReviewState, .commented)
         XCTAssertEqual(reReview.approvals, 0)
         XCTAssertTrue(reReview.updatedSinceReview)
+        XCTAssertEqual(reReview.checksStatus, .pending)
         XCTAssertNil(reReview.reviewRequestedAt)
 
         let firstReview = try XCTUnwrap(buckets.myOpenWaitingOnReviewers.last)
         XCTAssertEqual(firstReview.latestReviewState, .awaiting)
+        XCTAssertEqual(firstReview.checksStatus, .pending)
 
         let blocked = try XCTUnwrap(buckets.myOpenBlockedOnYou.first)
         XCTAssertEqual(blocked.latestReviewState, .changesRequested)
+        XCTAssertEqual(blocked.checksStatus, .failing)
 
         let ready = try XCTUnwrap(buckets.myOpenEnoughApprovals.first)
         XCTAssertEqual(ready.approvals, 2)
+        XCTAssertTrue(ready.isInMergeQueue)
+        XCTAssertEqual(ready.checksStatus, .passing)
 
         let expectedData = try Data(contentsOf: fixtureURL(named: "pending-reviews"))
         let expected = try JSONDecoder().decode(PendingReviewsFixture.self, from: expectedData)
@@ -187,6 +192,131 @@ final class ReviewBucketsBuilderTests: XCTestCase {
         let graphData = try XCTUnwrap(response.data)
         let buckets = ReviewBucketsBuilder().build(from: graphData, host: "github.com", requiredApprovals: 2)
         XCTAssertTrue(buckets.needsReReview.isEmpty)
+    }
+
+    func testMergeQAssigneeMarksPullRequestAsInMergeQueue() throws {
+        let response = try decodeResponse(
+            #"""
+            {
+              "data": {
+                "viewer": { "login": "alice" },
+                "awaiting": { "issueCount": 0, "nodes": [] },
+                "reviewed": { "issueCount": 0, "nodes": [] },
+                "myOpen": {
+                  "issueCount": 1,
+                  "nodes": [
+                    {
+                      "number": 88,
+                      "title": "Queued for merge",
+                      "url": "https://github.com/acme/repo/pull/88",
+                      "updatedAt": "2026-04-19T11:00:00Z",
+                      "isDraft": false,
+                      "author": { "login": "alice" },
+                      "repository": { "nameWithOwner": "acme/repo" },
+                      "assignees": {
+                        "nodes": [
+                          { "login": "mergeq", "name": "MergeQ - MergeQ Bot" }
+                        ]
+                      },
+                      "reviewRequests": { "nodes": [] },
+                      "reviews": {
+                        "nodes": [
+                          { "state": "APPROVED", "submittedAt": "2026-04-19T09:00:00Z", "author": { "login": "bob" } }
+                        ]
+                      },
+                      "commits": { "nodes": [ { "commit": { "committedDate": "2026-04-19T08:00:00Z" } } ] }
+                    }
+                  ]
+                }
+              }
+            }
+            """#
+        )
+
+        let graphData = try XCTUnwrap(response.data)
+        let buckets = ReviewBucketsBuilder().build(from: graphData, host: "github.com", requiredApprovals: 1)
+        let queued = try XCTUnwrap(buckets.myOpenEnoughApprovals.first)
+        XCTAssertTrue(queued.isInMergeQueue)
+    }
+
+    func testBuildsChecksStatusFromLatestCommitRollup() throws {
+        let response = try decodeResponse(
+            #"""
+            {
+              "data": {
+                "viewer": { "login": "alice" },
+                "awaiting": {
+                  "issueCount": 3,
+                  "nodes": [
+                    {
+                      "number": 501,
+                      "title": "Checks green",
+                      "url": "https://github.com/acme/repo/pull/501",
+                      "updatedAt": "2026-04-19T11:00:00Z",
+                      "isDraft": false,
+                      "author": { "login": "bob" },
+                      "repository": { "nameWithOwner": "acme/repo" },
+                      "assignees": { "nodes": [] },
+                      "reviewRequests": { "nodes": [] },
+                      "reviews": { "nodes": [] },
+                      "commits": {
+                        "nodes": [
+                          { "commit": { "committedDate": "2026-04-19T10:00:00Z", "statusCheckRollup": { "state": "SUCCESS" } } }
+                        ]
+                      },
+                      "timelineItems": { "nodes": [] }
+                    },
+                    {
+                      "number": 502,
+                      "title": "Checks pending",
+                      "url": "https://github.com/acme/repo/pull/502",
+                      "updatedAt": "2026-04-19T10:00:00Z",
+                      "isDraft": false,
+                      "author": { "login": "carol" },
+                      "repository": { "nameWithOwner": "acme/repo" },
+                      "assignees": { "nodes": [] },
+                      "reviewRequests": { "nodes": [] },
+                      "reviews": { "nodes": [] },
+                      "commits": {
+                        "nodes": [
+                          { "commit": { "committedDate": "2026-04-19T09:00:00Z", "statusCheckRollup": { "state": "PENDING" } } }
+                        ]
+                      },
+                      "timelineItems": { "nodes": [] }
+                    },
+                    {
+                      "number": 503,
+                      "title": "Checks failing",
+                      "url": "https://github.com/acme/repo/pull/503",
+                      "updatedAt": "2026-04-19T09:00:00Z",
+                      "isDraft": false,
+                      "author": { "login": "dave" },
+                      "repository": { "nameWithOwner": "acme/repo" },
+                      "assignees": { "nodes": [] },
+                      "reviewRequests": { "nodes": [] },
+                      "reviews": { "nodes": [] },
+                      "commits": {
+                        "nodes": [
+                          { "commit": { "committedDate": "2026-04-19T08:00:00Z", "statusCheckRollup": { "state": "FAILURE" } } }
+                        ]
+                      },
+                      "timelineItems": { "nodes": [] }
+                    }
+                  ]
+                },
+                "reviewed": { "issueCount": 0, "nodes": [] },
+                "myOpen": { "issueCount": 0, "nodes": [] }
+              }
+            }
+            """#
+        )
+
+        let graphData = try XCTUnwrap(response.data)
+        let buckets = ReviewBucketsBuilder().build(from: graphData, host: "github.com", requiredApprovals: 2)
+        let statuses = Dictionary(uniqueKeysWithValues: buckets.needsReview.map { ($0.number, $0.checksStatus) })
+        XCTAssertEqual(statuses[501], .passing)
+        XCTAssertEqual(statuses[502], .pending)
+        XCTAssertEqual(statuses[503], .failing)
     }
 
     func testApprovalCountUsesLatestReviewPerAuthor() throws {

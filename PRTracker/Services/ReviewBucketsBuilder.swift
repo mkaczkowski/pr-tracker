@@ -90,6 +90,8 @@ struct ReviewBucketsBuilder: Sendable {
         let lastCommitDateString = node.commits.nodes.last?.commit?.committedDate
         let lastCommitDate = DateDecoding.parse(lastCommitDateString)
         let reviewRequestedAt = latestReviewRequestDate(for: user, timelineNodes: node.timelineItems?.nodes ?? [])
+        let isInMergeQueue = hasMergeQAssignee(node: node)
+        let checksStatus = buildChecksStatus(node: node)
 
         let updatedSinceReview: Bool
         if let latestMyReview, let latestReviewDate = DateDecoding.parse(latestMyReview.submittedAt), let lastCommitDate {
@@ -110,7 +112,8 @@ struct ReviewBucketsBuilder: Sendable {
             approvals: approvalCount(reviews: node.reviews.nodes),
             updatedSinceReview: updatedSinceReview,
             isReReview: latestMyReview != nil,
-            isInMergeQueue: false,
+            isInMergeQueue: isInMergeQueue,
+            checksStatus: checksStatus,
             reviewRequestedAt: reviewRequestedAt,
             lastCommitDate: lastCommitDate
         )
@@ -145,6 +148,8 @@ struct ReviewBucketsBuilder: Sendable {
         let lastCommitDate = DateDecoding.parse(lastCommitDateString)
         let latestReviewDate = DateDecoding.parse(latestMyReview.submittedAt)
         let reviewRequestedAt = latestReviewRequestDate(for: user, timelineNodes: node.timelineItems?.nodes ?? [])
+        let isInMergeQueue = hasMergeQAssignee(node: node)
+        let checksStatus = buildChecksStatus(node: node)
 
         let updatedSinceReview: Bool
         if let latestReviewDate, let lastCommitDate {
@@ -177,7 +182,8 @@ struct ReviewBucketsBuilder: Sendable {
             approvals: approvalCount(reviews: node.reviews.nodes),
             updatedSinceReview: updatedSinceReview,
             isReReview: true,
-            isInMergeQueue: false,
+            isInMergeQueue: isInMergeQueue,
+            checksStatus: checksStatus,
             reviewRequestedAt: reviewRequestedAt,
             lastCommitDate: lastCommitDate
         )
@@ -205,6 +211,8 @@ struct ReviewBucketsBuilder: Sendable {
 
         let authorLogin = node.author?.login
         let lastCommitDate = DateDecoding.parse(node.commits.nodes.last?.commit?.committedDate)
+        let isInMergeQueue = hasMergeQAssignee(node: node)
+        let checksStatus = buildChecksStatus(node: node)
         let latestNonAuthorReview = latestReviewExcludingAuthor(
             reviews: node.reviews.nodes,
             author: authorLogin
@@ -248,7 +256,8 @@ struct ReviewBucketsBuilder: Sendable {
             approvals: approvals,
             updatedSinceReview: pushedSinceReview,
             isReReview: false,
-            isInMergeQueue: false,
+            isInMergeQueue: isInMergeQueue,
+            checksStatus: checksStatus,
             reviewRequestedAt: nil,
             lastCommitDate: lastCommitDate
         )
@@ -345,6 +354,45 @@ struct ReviewBucketsBuilder: Sendable {
                 return false
             }
             return login.caseInsensitiveCompare(user) != .orderedSame
+        }
+    }
+
+    private func hasMergeQAssignee(node: PullRequestNode) -> Bool {
+        node.assignees.nodes.contains { assignee in
+            let login = assignee.login?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .lowercased()
+            let name = assignee.name?
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .lowercased()
+
+            if login == "mergeq" || login == "mergeq[bot]" {
+                return true
+            }
+
+            guard let name else { return false }
+            return name == "mergeq - mergeq bot"
+                || name == "mergeq bot"
+                || name.contains("mergeq")
+        }
+    }
+
+    private func buildChecksStatus(node: PullRequestNode) -> ChecksStatus? {
+        checksStatus(from: node.commits.nodes.last?.commit?.statusCheckRollup?.state)
+    }
+
+    private func checksStatus(from rawState: String?) -> ChecksStatus? {
+        guard let rawState else { return nil }
+
+        switch rawState {
+        case "SUCCESS":
+            return .passing
+        case "ERROR", "FAILURE", "STARTUP_FAILURE", "TIMED_OUT", "ACTION_REQUIRED", "CANCELLED":
+            return .failing
+        case "EXPECTED", "PENDING", "IN_PROGRESS", "QUEUED", "REQUESTED", "WAITING", "STALE", "NEUTRAL", "SKIPPED":
+            return .pending
+        default:
+            return nil
         }
     }
 

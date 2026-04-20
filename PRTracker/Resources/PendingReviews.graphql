@@ -6,6 +6,9 @@ query($qAwaiting: String!, $qReviewed: String!, $qMyOpen: String!, $n: Int!) {
       number title url updatedAt isDraft reviewDecision
       author { login }
       repository { nameWithOwner }
+      assignees(first: 10) {
+        nodes { login name }
+      }
       reviewRequests(first: 10) {
         nodes {
           requestedReviewer { ... on User { login } }
@@ -15,7 +18,7 @@ query($qAwaiting: String!, $qReviewed: String!, $qMyOpen: String!, $n: Int!) {
         nodes { state submittedAt author { login } }
       }
       commits(last: 1) {
-        nodes { commit { committedDate } }
+        nodes { commit { committedDate statusCheckRollup { state } } }
       }
       timelineItems(last: 20, itemTypes: [REVIEW_REQUESTED_EVENT]) {
         nodes {
@@ -33,6 +36,9 @@ query($qAwaiting: String!, $qReviewed: String!, $qMyOpen: String!, $n: Int!) {
       number title url updatedAt isDraft reviewDecision
       author { login }
       repository { nameWithOwner }
+      assignees(first: 10) {
+        nodes { login name }
+      }
       reviewRequests(first: 10) {
         nodes {
           requestedReviewer { ... on User { login } }
@@ -42,7 +48,7 @@ query($qAwaiting: String!, $qReviewed: String!, $qMyOpen: String!, $n: Int!) {
         nodes { state submittedAt author { login } }
       }
       commits(last: 1) {
-        nodes { commit { committedDate } }
+        nodes { commit { committedDate statusCheckRollup { state } } }
       }
       timelineItems(last: 20, itemTypes: [REVIEW_REQUESTED_EVENT]) {
         nodes {
@@ -60,6 +66,9 @@ query($qAwaiting: String!, $qReviewed: String!, $qMyOpen: String!, $n: Int!) {
       number title url updatedAt isDraft reviewDecision
       author { login }
       repository { nameWithOwner }
+      assignees(first: 10) {
+        nodes { login name }
+      }
       reviewRequests(first: 10) {
         nodes {
           requestedReviewer { ... on User { login } }
@@ -69,7 +78,7 @@ query($qAwaiting: String!, $qReviewed: String!, $qMyOpen: String!, $n: Int!) {
         nodes { state submittedAt author { login } }
       }
       commits(last: 1) {
-        nodes { commit { committedDate } }
+        nodes { commit { committedDate statusCheckRollup { state } } }
       }
     }}
   }

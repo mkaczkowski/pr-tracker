@@ -85,7 +85,12 @@ struct PullRequestNode: Decodable, Sendable {
     struct CommitConnection: Decodable, Sendable {
         struct CommitNode: Decodable, Sendable {
             struct CommitWrapper: Decodable, Sendable {
+                struct StatusCheckRollup: Decodable, Sendable {
+                    let state: String?
+                }
+
                 let committedDate: String?
+                let statusCheckRollup: StatusCheckRollup?
             }
 
             let commit: CommitWrapper?

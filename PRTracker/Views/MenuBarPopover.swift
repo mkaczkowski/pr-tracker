@@ -42,34 +42,44 @@ struct MenuBarPopover: View {
         .animation(.snappy(duration: 0.22), value: showMyWaiting)
         .animation(.snappy(duration: 0.22), value: showMyReady)
         .onAppear {
-            collapseEmptySections()
+            syncSectionExpansionForCurrentBuckets()
             model.startIfNeeded()
             model.onPopoverOpened()
         }
-        .onChange(of: visibleBuckets.needsReview.count) { _, count in
-            if count == 0 {
-                showAwaiting = false
-            }
+        .onChange(of: visibleBuckets.needsReview.count) { oldCount, newCount in
+            updateSectionExpansion(
+                isExpanded: &showAwaiting,
+                previousCount: oldCount,
+                currentCount: newCount
+            )
         }
-        .onChange(of: visibleBuckets.needsReReview.count) { _, count in
-            if count == 0 {
-                showReReview = false
-            }
+        .onChange(of: visibleBuckets.needsReReview.count) { oldCount, newCount in
+            updateSectionExpansion(
+                isExpanded: &showReReview,
+                previousCount: oldCount,
+                currentCount: newCount
+            )
         }
-        .onChange(of: visibleBuckets.myOpenBlockedOnYou.count) { _, count in
-            if count == 0 {
-                showMyBlocked = false
-            }
+        .onChange(of: visibleBuckets.myOpenBlockedOnYou.count) { oldCount, newCount in
+            updateSectionExpansion(
+                isExpanded: &showMyBlocked,
+                previousCount: oldCount,
+                currentCount: newCount
+            )
         }
-        .onChange(of: visibleBuckets.myOpenWaitingOnReviewers.count) { _, count in
-            if count == 0 {
-                showMyWaiting = false
-            }
+        .onChange(of: visibleBuckets.myOpenWaitingOnReviewers.count) { oldCount, newCount in
+            updateSectionExpansion(
+                isExpanded: &showMyWaiting,
+                previousCount: oldCount,
+                currentCount: newCount
+            )
         }
-        .onChange(of: visibleBuckets.myOpenEnoughApprovals.count) { _, count in
-            if count == 0 {
-                showMyReady = false
-            }
+        .onChange(of: visibleBuckets.myOpenEnoughApprovals.count) { oldCount, newCount in
+            updateSectionExpansion(
+                isExpanded: &showMyReady,
+                previousCount: oldCount,
+                currentCount: newCount
+            )
         }
     }
 
@@ -368,21 +378,23 @@ struct MenuBarPopover: View {
         .help(helpText)
     }
 
-    private func collapseEmptySections() {
-        if visibleBuckets.needsReview.isEmpty {
-            showAwaiting = false
-        }
-        if visibleBuckets.needsReReview.isEmpty {
-            showReReview = false
-        }
-        if visibleBuckets.myOpenBlockedOnYou.isEmpty {
-            showMyBlocked = false
-        }
-        if visibleBuckets.myOpenWaitingOnReviewers.isEmpty {
-            showMyWaiting = false
-        }
-        if visibleBuckets.myOpenEnoughApprovals.isEmpty {
-            showMyReady = false
+    private func syncSectionExpansionForCurrentBuckets() {
+        showAwaiting = visibleBuckets.needsReview.isEmpty == false
+        showReReview = visibleBuckets.needsReReview.isEmpty == false
+        showMyBlocked = visibleBuckets.myOpenBlockedOnYou.isEmpty == false
+        showMyWaiting = visibleBuckets.myOpenWaitingOnReviewers.isEmpty == false
+        showMyReady = visibleBuckets.myOpenEnoughApprovals.isEmpty == false
+    }
+
+    private func updateSectionExpansion(
+        isExpanded: inout Bool,
+        previousCount: Int,
+        currentCount: Int
+    ) {
+        if currentCount == 0 {
+            isExpanded = false
+        } else if previousCount == 0 {
+            isExpanded = true
         }
     }
 }

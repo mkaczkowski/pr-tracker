@@ -63,6 +63,12 @@ enum PullRequestListContext: Equatable, Sendable {
     case myOpenEnoughApprovals
 }
 
+enum ChecksStatus: String, Codable, Hashable, Sendable {
+    case passing
+    case pending
+    case failing
+}
+
 struct PullRequest: Codable, Hashable, Identifiable, Sendable {
     let number: Int
     let title: String
@@ -76,6 +82,7 @@ struct PullRequest: Codable, Hashable, Identifiable, Sendable {
     let updatedSinceReview: Bool
     let isReReview: Bool
     let isInMergeQueue: Bool
+    let checksStatus: ChecksStatus?
     let reviewRequestedAt: Date?
     let lastCommitDate: Date?
 

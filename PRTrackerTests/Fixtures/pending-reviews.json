@@ -14,6 +14,8 @@
       "approvals": 1,
       "updatedSinceReview": true,
       "isReReview": true,
+      "isInMergeQueue": false,
+      "checksStatus": "pending",
       "reviewRequestedAt": "2026-04-19T10:00:00Z",
       "lastCommitDate": "2026-04-19T10:45:00Z"
     }
@@ -31,6 +33,8 @@
       "approvals": 0,
       "updatedSinceReview": true,
       "isReReview": false,
+      "isInMergeQueue": false,
+      "checksStatus": null,
       "reviewRequestedAt": "2026-04-18T12:00:00Z",
       "lastCommitDate": "2026-04-18T12:30:00Z"
     }
@@ -48,6 +52,8 @@
       "approvals": 0,
       "updatedSinceReview": true,
       "isReReview": false,
+      "isInMergeQueue": false,
+      "checksStatus": "pending",
       "reviewRequestedAt": null,
       "lastCommitDate": "2026-04-19T08:45:00Z"
     },
@@ -63,6 +69,8 @@
       "approvals": 0,
       "updatedSinceReview": false,
       "isReReview": false,
+      "isInMergeQueue": false,
+      "checksStatus": "pending",
       "reviewRequestedAt": null,
       "lastCommitDate": "2026-04-19T07:30:00Z"
     }
@@ -80,6 +88,8 @@
       "approvals": 0,
       "updatedSinceReview": false,
       "isReReview": false,
+      "isInMergeQueue": false,
+      "checksStatus": "failing",
       "reviewRequestedAt": null,
       "lastCommitDate": "2026-04-19T03:00:00Z"
     }
@@ -97,6 +107,8 @@
       "approvals": 2,
       "updatedSinceReview": false,
       "isReReview": false,
+      "isInMergeQueue": true,
+      "checksStatus": "passing",
       "reviewRequestedAt": null,
       "lastCommitDate": "2026-04-19T04:00:00Z"
     }

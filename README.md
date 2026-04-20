@@ -23,7 +23,6 @@ Official macOS zips are published on **[GitHub Releases](https://github.com/mkac
 
 1. Download **PRTracker-macos-\*.zip** from the latest release and **double-click it** (Finder expands it; no Terminal needed).
 2. Drag **PRTracker.app** to **Applications** (recommended before the next step).
-
 3. **Clear quarantine** so Gatekeeper allows the unsigned build (this is the reliable fix when macOS shows *“could not verify… malware”* with only **Close** / **Move to Trash**). Only do this if you **trust** this zip (ideally compare **SHA-256** with the release page first):
 
    ```bash
