@@ -94,7 +94,8 @@
       "lastCommitDate": "2026-04-19T03:00:00Z"
     }
   ],
-  "my_open_enough_approvals": [
+  "my_open_waiting_to_be_merged": [],
+  "my_open_on_merge_queue": [
     {
       "number": 203,
       "title": "Already approved enough, no new push",

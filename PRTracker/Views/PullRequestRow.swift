@@ -26,7 +26,10 @@ struct PullRequestRow: View {
     let onCustomReminderRequested: () -> Void
     let onClearReminder: () -> Void
     @Binding var hoveredID: String?
-    @State private var lastOpenAt: Date = .distantPast
+    let isSelected: Bool
+    let onSelect: () -> Void
+    let onOpenPullRequest: (PullRequest) -> Void
+    let onOpenPullRequestDebounced: (PullRequest) -> Void
     @State private var hoveredTimeChip: TimeChipKind?
     private let numberColumnWidth: CGFloat = 44
     private let approvalsColumnWidth: CGFloat = 42
@@ -59,11 +62,15 @@ struct PullRequestRow: View {
         }
         .modifier(RowChrome(
             isHovering: isHovering,
+            isSelected: isSelected,
             isClickable: isClickable,
             onHoverChanged: updateHoverState,
+            onSelect: onSelect,
             openPullRequest: openPullRequestDebounced
         ))
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
         .contextMenu { contextMenuContent }
+        .accessibilityAction(.default, openPullRequest)
         .textSelection(.disabled)
     }
 
@@ -502,15 +509,13 @@ struct PullRequestRow: View {
     }
 
     private func openPullRequest() {
-        guard let url = pullRequest.url else { return }
-        NSWorkspace.shared.open(url)
+        guard pullRequest.url != nil else { return }
+        onOpenPullRequest(pullRequest)
     }
 
     private func openPullRequestDebounced() {
-        let now = Date()
-        guard now.timeIntervalSince(lastOpenAt) > 0.35 else { return }
-        lastOpenAt = now
-        openPullRequest()
+        guard pullRequest.url != nil else { return }
+        onOpenPullRequestDebounced(pullRequest)
     }
 
     private func copyURL() {
@@ -559,16 +564,26 @@ private struct HoverTooltip: View {
 
 private struct RowChrome: ViewModifier {
     let isHovering: Bool
+    let isSelected: Bool
     let isClickable: Bool
     let onHoverChanged: (Bool) -> Void
+    let onSelect: () -> Void
     let openPullRequest: () -> Void
+
+    private var rowBackground: Color {
+        if isSelected {
+            return Color.accentColor.opacity(isHovering ? 0.22 : 0.16)
+        }
+        return isHovering ? Color.primary.opacity(0.05) : Color.clear
+    }
 
     func body(content: Content) -> some View {
         content
-            .background(isHovering ? Color.primary.opacity(0.05) : Color.clear)
+            .background(rowBackground)
             .contentShape(Rectangle())
             .onHover(perform: onHoverChanged)
             .onTapGesture {
+                onSelect()
                 guard isClickable else { return }
                 openPullRequest()
             }

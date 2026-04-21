@@ -30,6 +30,7 @@ final class AppModel {
     var rateLimitRemaining: Int?
     var isOnline = true
     var lastRefreshErrorMessage: String?
+    var searchQuery = ""
 
     private(set) var settings: AppSettings
 
@@ -208,6 +209,14 @@ final class AppModel {
 
     var visibleBuckets: ReviewBuckets {
         buckets.filtered(includeDrafts: settings.includeDraftPullRequests)
+    }
+
+    var displayedBuckets: ReviewBuckets {
+        visibleBuckets.filtered(matching: searchQuery)
+    }
+
+    var hasActiveSearch: Bool {
+        searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
     }
 
     func setIncludeDraftPullRequests(_ include: Bool) {
@@ -458,8 +467,10 @@ private extension PullRequestListContext {
             return "my-open-waiting"
         case .myOpenBlockedOnYou:
             return "my-open-blocked"
-        case .myOpenEnoughApprovals:
-            return "my-open-ready"
+        case .myOpenWaitingToBeMerged:
+            return "my-open-waiting-to-merge"
+        case .myOpenOnMergeQueue:
+            return "my-open-on-merge-queue"
         }
     }
 }

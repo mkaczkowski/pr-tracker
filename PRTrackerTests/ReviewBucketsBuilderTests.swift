@@ -37,7 +37,8 @@ final class ReviewBucketsBuilderTests: XCTestCase {
 
         XCTAssertEqual(buckets.myOpenWaitingOnReviewers.map(\.number), [201, 200])
         XCTAssertEqual(buckets.myOpenBlockedOnYou.map(\.number), [202])
-        XCTAssertEqual(buckets.myOpenEnoughApprovals.map(\.number), [203])
+        XCTAssertEqual(buckets.myOpenWaitingToBeMerged.map(\.number), [])
+        XCTAssertEqual(buckets.myOpenOnMergeQueue.map(\.number), [203])
         XCTAssertFalse(buckets.myOpenTruncated)
 
         let reReview = try XCTUnwrap(buckets.myOpenWaitingOnReviewers.first)
@@ -55,7 +56,7 @@ final class ReviewBucketsBuilderTests: XCTestCase {
         XCTAssertEqual(blocked.latestReviewState, .changesRequested)
         XCTAssertEqual(blocked.checksStatus, .failing)
 
-        let ready = try XCTUnwrap(buckets.myOpenEnoughApprovals.first)
+        let ready = try XCTUnwrap(buckets.myOpenOnMergeQueue.first)
         XCTAssertEqual(ready.approvals, 2)
         XCTAssertTrue(ready.isInMergeQueue)
         XCTAssertEqual(ready.checksStatus, .passing)
@@ -68,7 +69,8 @@ final class ReviewBucketsBuilderTests: XCTestCase {
         XCTAssertEqual(expected.needsReReview.first?.number, reviewed.number)
         XCTAssertEqual(expected.myOpenWaitingOnReviewers.map(\.number), [201, 200])
         XCTAssertEqual(expected.myOpenBlockedOnYou.map(\.number), [202])
-        XCTAssertEqual(expected.myOpenEnoughApprovals.map(\.number), [203])
+        XCTAssertEqual(expected.myOpenWaitingToBeMerged.map(\.number), [])
+        XCTAssertEqual(expected.myOpenOnMergeQueue.map(\.number), [203])
     }
 
     func testTruncationFlagWhenIssueCountExceedsSearchLimit() {
@@ -235,8 +237,54 @@ final class ReviewBucketsBuilderTests: XCTestCase {
 
         let graphData = try XCTUnwrap(response.data)
         let buckets = ReviewBucketsBuilder().build(from: graphData, host: "github.com", requiredApprovals: 1)
-        let queued = try XCTUnwrap(buckets.myOpenEnoughApprovals.first)
+        let queued = try XCTUnwrap(buckets.myOpenOnMergeQueue.first)
         XCTAssertTrue(queued.isInMergeQueue)
+    }
+
+    func testMergeQAssigneeWithEnoughApprovalsStaysOnMergeQueueAfterFollowUpPush() throws {
+        let response = try decodeResponse(
+            #"""
+            {
+              "data": {
+                "viewer": { "login": "alice" },
+                "awaiting": { "issueCount": 0, "nodes": [] },
+                "reviewed": { "issueCount": 0, "nodes": [] },
+                "myOpen": {
+                  "issueCount": 1,
+                  "nodes": [
+                    {
+                      "number": 89,
+                      "title": "Queued with follow-up commit",
+                      "url": "https://github.com/acme/repo/pull/89",
+                      "updatedAt": "2026-04-20T12:00:00Z",
+                      "isDraft": false,
+                      "author": { "login": "alice" },
+                      "repository": { "nameWithOwner": "acme/repo" },
+                      "assignees": {
+                        "nodes": [
+                          { "login": "MergeQ", "name": "MergeQ Bot" }
+                        ]
+                      },
+                      "reviewRequests": { "nodes": [] },
+                      "reviews": {
+                        "nodes": [
+                          { "state": "APPROVED", "submittedAt": "2026-04-20T09:00:00Z", "author": { "login": "bob" } },
+                          { "state": "APPROVED", "submittedAt": "2026-04-20T09:15:00Z", "author": { "login": "carol" } }
+                        ]
+                      },
+                      "commits": { "nodes": [ { "commit": { "committedDate": "2026-04-20T10:00:00Z" } } ] }
+                    }
+                  ]
+                }
+              }
+            }
+            """#
+        )
+
+        let graphData = try XCTUnwrap(response.data)
+        let buckets = ReviewBucketsBuilder().build(from: graphData, host: "github.com", requiredApprovals: 2)
+        XCTAssertTrue(buckets.myOpenWaitingOnReviewers.isEmpty)
+        XCTAssertEqual(buckets.myOpenOnMergeQueue.map(\.number), [89])
     }
 
     func testBuildsChecksStatusFromLatestCommitRollup() throws {
@@ -787,7 +835,8 @@ final class ReviewBucketsBuilderTests: XCTestCase {
         let buckets = ReviewBucketsBuilder().build(from: graphData, host: "github.com", requiredApprovals: 2)
 
         XCTAssertEqual(buckets.myOpenBlockedOnYou.map(\.number), [401, 402])
-        XCTAssertEqual(buckets.myOpenEnoughApprovals.map(\.number), [403, 404])
+        XCTAssertEqual(buckets.myOpenWaitingToBeMerged.map(\.number), [403, 404])
+        XCTAssertTrue(buckets.myOpenOnMergeQueue.isEmpty)
 
         let blocked = try XCTUnwrap(buckets.myOpenBlockedOnYou.first)
         XCTAssertEqual(
@@ -801,15 +850,15 @@ final class ReviewBucketsBuilderTests: XCTestCase {
             )
         )
 
-        let ready = try XCTUnwrap(buckets.myOpenEnoughApprovals.first)
+        let ready = try XCTUnwrap(buckets.myOpenWaitingToBeMerged.first)
         XCTAssertEqual(
-            ready.displayState(requiredApprovals: 2, context: .myOpenEnoughApprovals),
+            ready.displayState(requiredApprovals: 2, context: .myOpenWaitingToBeMerged),
             .approved
         )
         XCTAssertTrue(
             ready.approvalBadgeShowsComplete(
                 requiredApprovals: 2,
-                context: .myOpenEnoughApprovals
+                context: .myOpenWaitingToBeMerged
             )
         )
     }
@@ -1022,7 +1071,8 @@ private struct PendingReviewsFixture: Decodable {
     let needsReReview: [PullRequestFixture]
     let myOpenWaitingOnReviewers: [PullRequestFixture]
     let myOpenBlockedOnYou: [PullRequestFixture]
-    let myOpenEnoughApprovals: [PullRequestFixture]
+    let myOpenWaitingToBeMerged: [PullRequestFixture]
+    let myOpenOnMergeQueue: [PullRequestFixture]
 
     enum CodingKeys: String, CodingKey {
         case user
@@ -1031,7 +1081,8 @@ private struct PendingReviewsFixture: Decodable {
         case needsReReview = "needs_rereview"
         case myOpenWaitingOnReviewers = "my_open_waiting_on_reviewers"
         case myOpenBlockedOnYou = "my_open_blocked_on_you"
-        case myOpenEnoughApprovals = "my_open_enough_approvals"
+        case myOpenWaitingToBeMerged = "my_open_waiting_to_be_merged"
+        case myOpenOnMergeQueue = "my_open_on_merge_queue"
     }
 }
 

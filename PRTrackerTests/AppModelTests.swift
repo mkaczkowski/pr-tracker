@@ -163,7 +163,8 @@ final class AppModelTests: XCTestCase {
             needsReReview: [],
             myOpenWaitingOnReviewers: [],
             myOpenBlockedOnYou: [],
-            myOpenEnoughApprovals: [],
+            myOpenWaitingToBeMerged: [],
+            myOpenOnMergeQueue: [],
             totals: BucketTotals(awaiting: 2, reviewed: 0),
             awaitingTruncated: false,
             reviewedTruncated: false,
@@ -189,6 +190,46 @@ final class AppModelTests: XCTestCase {
         XCTAssertFalse(model.settings.includeDraftPullRequests)
     }
 
+    func testDisplayedBucketsFilterMatchesPRNumberJiraKeyAndTitle() {
+        let reviewMatch = makePullRequest(number: 101, isDraft: false, title: "Improve filter UX (ABC-123)")
+        let reReviewMatch = makePullRequest(number: 42, isDraft: false, title: "Fix stale review state")
+        let authorMatch = makePullRequest(number: 303, isDraft: false, title: "Refactor title parser")
+
+        let model = makeModel(
+            pendingReviewsService: StubPendingReviewsService(result: .success(.init(buckets: makeBuckets(), rateLimitRemaining: nil)))
+        )
+        model.buckets = ReviewBuckets(
+            user: "alice",
+            host: "github.com",
+            needsReview: [reviewMatch],
+            needsReReview: [reReviewMatch],
+            myOpenWaitingOnReviewers: [authorMatch],
+            myOpenBlockedOnYou: [],
+            myOpenWaitingToBeMerged: [],
+            myOpenOnMergeQueue: [],
+            totals: BucketTotals(awaiting: 1, reviewed: 1),
+            awaitingTruncated: false,
+            reviewedTruncated: false,
+            myOpenTruncated: false
+        )
+
+        model.searchQuery = "#101"
+        XCTAssertEqual(model.displayedBuckets.needsReview.map(\.number), [101])
+        XCTAssertTrue(model.displayedBuckets.needsReReview.isEmpty)
+
+        model.searchQuery = "abc-123"
+        XCTAssertEqual(model.displayedBuckets.needsReview.map(\.number), [101])
+
+        model.searchQuery = "parser"
+        XCTAssertEqual(model.displayedBuckets.myOpenWaitingOnReviewers.map(\.number), [303])
+        XCTAssertTrue(model.displayedBuckets.needsReview.isEmpty)
+
+        model.searchQuery = "   "
+        XCTAssertEqual(model.displayedBuckets.needsReview.map(\.number), [101])
+        XCTAssertEqual(model.displayedBuckets.needsReReview.map(\.number), [42])
+        XCTAssertEqual(model.displayedBuckets.myOpenWaitingOnReviewers.map(\.number), [303])
+    }
+
     func testRefreshFromStoredSettingsDoesNotStartSchedulerBeforeModelStarts() {
         let pending = StubPendingReviewsService(result: .success(.init(buckets: makeBuckets(), rateLimitRemaining: nil)))
         let model = makeModel(pendingReviewsService: pending)
@@ -212,7 +253,8 @@ final class AppModelTests: XCTestCase {
             needsReReview: [],
             myOpenWaitingOnReviewers: [authoredByMe],
             myOpenBlockedOnYou: [],
-            myOpenEnoughApprovals: [],
+            myOpenWaitingToBeMerged: [],
+            myOpenOnMergeQueue: [],
             totals: BucketTotals(awaiting: 2, reviewed: 0),
             awaitingTruncated: false,
             reviewedTruncated: false,
@@ -304,7 +346,8 @@ final class AppModelTests: XCTestCase {
             needsReReview: [],
             myOpenWaitingOnReviewers: [],
             myOpenBlockedOnYou: [],
-            myOpenEnoughApprovals: [],
+            myOpenWaitingToBeMerged: [],
+            myOpenOnMergeQueue: [],
             totals: BucketTotals(awaiting: 0, reviewed: 0),
             awaitingTruncated: false,
             reviewedTruncated: false,
@@ -400,7 +443,8 @@ final class AppModelTests: XCTestCase {
             needsReReview: [],
             myOpenWaitingOnReviewers: [],
             myOpenBlockedOnYou: [],
-            myOpenEnoughApprovals: [],
+            myOpenWaitingToBeMerged: [],
+            myOpenOnMergeQueue: [],
             totals: BucketTotals(awaiting: 1, reviewed: 0),
             awaitingTruncated: false,
             reviewedTruncated: false,
@@ -408,10 +452,15 @@ final class AppModelTests: XCTestCase {
         )
     }
 
-    private func makePullRequest(number: Int, isDraft: Bool, author: String = "bob") -> PullRequest {
+    private func makePullRequest(
+        number: Int,
+        isDraft: Bool,
+        author: String = "bob",
+        title: String = "Add tests"
+    ) -> PullRequest {
         PullRequest(
             number: number,
-            title: "Add tests",
+            title: title,
             url: URL(string: "https://github.com/acme/repo/pull/\(number)"),
             updatedAt: Date(timeIntervalSince1970: 1_000),
             repository: "acme/repo",
@@ -419,6 +468,176 @@ final class AppModelTests: XCTestCase {
             isDraft: isDraft,
             latestReviewState: .awaiting,
             approvals: 1,
+            updatedSinceReview: false,
+            isReReview: false,
+            isInMergeQueue: false,
+            checksStatus: nil,
+            reviewRequestedAt: Date(timeIntervalSince1970: 900),
+            lastCommitDate: Date(timeIntervalSince1970: 950)
+        )
+    }
+}
+
+final class PullRequestKeyboardNavigationTests: XCTestCase {
+    func testVisibleEntriesRespectSectionExpansionAndDisplayOrder() {
+        let buckets = makeBuckets(
+            needsReview: [makePullRequest(number: 1, title: "Needs review")],
+            needsReReview: [makePullRequest(number: 2, title: "Needs re-review")],
+            myOpenWaitingOnReviewers: [makePullRequest(number: 4, title: "Waiting on reviewers")],
+            myOpenBlockedOnYou: [makePullRequest(number: 3, title: "Blocked on you")],
+            myOpenWaitingToBeMerged: [makePullRequest(number: 5, title: "Ready to merge")],
+            myOpenOnMergeQueue: [makePullRequest(number: 6, title: "On merge queue")]
+        )
+        let expansion = PullRequestKeyboardNavigation.SectionExpansion(
+            showAwaiting: true,
+            showReReview: false,
+            showMyBlocked: true,
+            showMyWaiting: false,
+            showMyWaitingToMerge: true,
+            showMyOnMergeQueue: true
+        )
+
+        let entries = PullRequestKeyboardNavigation.visibleEntries(in: buckets, expansion: expansion)
+        XCTAssertEqual(entries.map(\.pullRequest.number), [1, 3, 5, 6])
+        XCTAssertEqual(
+            entries.map(\.context),
+            [.needsReview, .myOpenBlockedOnYou, .myOpenWaitingToBeMerged, .myOpenOnMergeQueue]
+        )
+    }
+
+    func testNextSelectionSkipsCollapsedSectionsViaVisibleEntries() {
+        let buckets = makeBuckets(
+            needsReview: [makePullRequest(number: 10, title: "First")],
+            needsReReview: [makePullRequest(number: 20, title: "Collapsed section")],
+            myOpenBlockedOnYou: [makePullRequest(number: 30, title: "Third")]
+        )
+        let expansion = PullRequestKeyboardNavigation.SectionExpansion(
+            showAwaiting: true,
+            showReReview: false,
+            showMyBlocked: true,
+            showMyWaiting: false,
+            showMyWaitingToMerge: false,
+            showMyOnMergeQueue: false
+        )
+
+        let entries = PullRequestKeyboardNavigation.visibleEntries(in: buckets, expansion: expansion)
+        XCTAssertEqual(entries.map(\.pullRequest.number), [10, 30])
+
+        let movedDown = PullRequestKeyboardNavigation.nextSelectionID(
+            currentID: entries.first?.id,
+            entries: entries,
+            direction: .down
+        )
+        XCTAssertEqual(movedDown, entries.last?.id)
+    }
+
+    func testReconciledSelectionFallsBackWhenSelectedPullRequestDisappears() {
+        let buckets = makeBuckets(
+            needsReview: [
+                makePullRequest(number: 101, title: "Alpha"),
+                makePullRequest(number: 202, title: "Beta")
+            ]
+        )
+        let expansion = PullRequestKeyboardNavigation.SectionExpansion(
+            showAwaiting: true,
+            showReReview: true,
+            showMyBlocked: true,
+            showMyWaiting: true,
+            showMyWaitingToMerge: true,
+            showMyOnMergeQueue: true
+        )
+
+        let initialEntries = PullRequestKeyboardNavigation.visibleEntries(in: buckets, expansion: expansion)
+        let filteredBuckets = buckets.filtered(matching: "#101")
+        let filteredEntries = PullRequestKeyboardNavigation.visibleEntries(
+            in: filteredBuckets,
+            expansion: expansion
+        )
+
+        let reconciled = PullRequestKeyboardNavigation.reconciledSelectionID(
+            currentID: initialEntries.last?.id,
+            entries: filteredEntries
+        )
+        XCTAssertEqual(reconciled, filteredEntries.first?.id)
+        XCTAssertEqual(filteredEntries.map(\.pullRequest.number), [101])
+    }
+
+    func testNextSelectionClampsAtBoundaries() {
+        let buckets = makeBuckets(
+            needsReview: [
+                makePullRequest(number: 1, title: "First"),
+                makePullRequest(number: 2, title: "Last")
+            ]
+        )
+        let expansion = PullRequestKeyboardNavigation.SectionExpansion(
+            showAwaiting: true,
+            showReReview: true,
+            showMyBlocked: true,
+            showMyWaiting: true,
+            showMyWaitingToMerge: true,
+            showMyOnMergeQueue: true
+        )
+        let entries = PullRequestKeyboardNavigation.visibleEntries(in: buckets, expansion: expansion)
+
+        let staysOnFirst = PullRequestKeyboardNavigation.nextSelectionID(
+            currentID: entries.first?.id,
+            entries: entries,
+            direction: .up
+        )
+        XCTAssertEqual(staysOnFirst, entries.first?.id)
+
+        let staysOnLast = PullRequestKeyboardNavigation.nextSelectionID(
+            currentID: entries.last?.id,
+            entries: entries,
+            direction: .down
+        )
+        XCTAssertEqual(staysOnLast, entries.last?.id)
+    }
+
+    func testNextSelectionReturnsNilForEmptyEntries() {
+        let selection = PullRequestKeyboardNavigation.nextSelectionID(
+            currentID: "acme/repo#99",
+            entries: [],
+            direction: .down
+        )
+        XCTAssertNil(selection)
+    }
+
+    private func makeBuckets(
+        needsReview: [PullRequest] = [],
+        needsReReview: [PullRequest] = [],
+        myOpenWaitingOnReviewers: [PullRequest] = [],
+        myOpenBlockedOnYou: [PullRequest] = [],
+        myOpenWaitingToBeMerged: [PullRequest] = [],
+        myOpenOnMergeQueue: [PullRequest] = []
+    ) -> ReviewBuckets {
+        ReviewBuckets(
+            user: "alice",
+            host: "github.com",
+            needsReview: needsReview,
+            needsReReview: needsReReview,
+            myOpenWaitingOnReviewers: myOpenWaitingOnReviewers,
+            myOpenBlockedOnYou: myOpenBlockedOnYou,
+            myOpenWaitingToBeMerged: myOpenWaitingToBeMerged,
+            myOpenOnMergeQueue: myOpenOnMergeQueue,
+            totals: BucketTotals(awaiting: needsReview.count, reviewed: needsReReview.count),
+            awaitingTruncated: false,
+            reviewedTruncated: false,
+            myOpenTruncated: false
+        )
+    }
+
+    private func makePullRequest(number: Int, title: String) -> PullRequest {
+        PullRequest(
+            number: number,
+            title: title,
+            url: URL(string: "https://github.com/acme/repo/pull/\(number)"),
+            updatedAt: Date(timeIntervalSince1970: 1_000),
+            repository: "acme/repo",
+            author: "bob",
+            isDraft: false,
+            latestReviewState: .awaiting,
+            approvals: 0,
             updatedSinceReview: false,
             isReReview: false,
             isInMergeQueue: false,

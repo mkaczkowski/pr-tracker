@@ -15,7 +15,8 @@ struct ReviewBucketsBuilder: Sendable {
     private enum MyOpenBucket: Sendable {
         case waitingOnReviewers
         case blockedOnYou
-        case enoughApprovals
+        case waitingToBeMerged
+        case onMergeQueue
     }
 
     private struct MyOpenCandidate {
@@ -57,8 +58,12 @@ struct ReviewBucketsBuilder: Sendable {
             .filter { $0.bucket == .blockedOnYou }
             .sorted(by: compareMyOpenBlockedOnYou)
             .map(\.pullRequest)
-        let myOpenEnoughApprovals = myOpenCandidates
-            .filter { $0.bucket == .enoughApprovals }
+        let myOpenWaitingToBeMerged = myOpenCandidates
+            .filter { $0.bucket == .waitingToBeMerged }
+            .sorted(by: compareMyOpenEnoughApprovals)
+            .map(\.pullRequest)
+        let myOpenOnMergeQueue = myOpenCandidates
+            .filter { $0.bucket == .onMergeQueue }
             .sorted(by: compareMyOpenEnoughApprovals)
             .map(\.pullRequest)
 
@@ -69,7 +74,8 @@ struct ReviewBucketsBuilder: Sendable {
             needsReReview: needsReReview,
             myOpenWaitingOnReviewers: myOpenWaitingOnReviewers,
             myOpenBlockedOnYou: myOpenBlockedOnYou,
-            myOpenEnoughApprovals: myOpenEnoughApprovals,
+            myOpenWaitingToBeMerged: myOpenWaitingToBeMerged,
+            myOpenOnMergeQueue: myOpenOnMergeQueue,
             totals: BucketTotals(awaiting: response.awaiting.issueCount, reviewed: response.reviewed.issueCount),
             awaitingTruncated: response.awaiting.issueCount > searchLimit,
             reviewedTruncated: response.reviewed.issueCount > searchLimit,
@@ -234,10 +240,12 @@ struct ReviewBucketsBuilder: Sendable {
             && latestNonAuthorState != .pending
 
         let bucket: MyOpenBucket
-        if latestNonAuthorState == .changesRequested, pushedSinceReview == false {
+        if isInMergeQueue && approvals >= requiredApprovals {
+            bucket = .onMergeQueue
+        } else if latestNonAuthorState == .changesRequested, pushedSinceReview == false {
             bucket = .blockedOnYou
         } else if isReadyForMerge {
-            bucket = .enoughApprovals
+            bucket = isInMergeQueue ? .onMergeQueue : .waitingToBeMerged
         } else if needsMoreApprovals || pushedSinceReview || latestNonAuthorState == .pending || latestNonAuthorReview == nil {
             bucket = .waitingOnReviewers
         } else {

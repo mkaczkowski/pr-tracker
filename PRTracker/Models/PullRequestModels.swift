@@ -60,7 +60,8 @@ enum PullRequestListContext: Equatable, Sendable {
     case needsReReview
     case myOpenWaitingOnReviewers
     case myOpenBlockedOnYou
-    case myOpenEnoughApprovals
+    case myOpenWaitingToBeMerged
+    case myOpenOnMergeQueue
 }
 
 enum ChecksStatus: String, Codable, Hashable, Sendable {
@@ -90,6 +91,17 @@ struct PullRequest: Codable, Hashable, Identifiable, Sendable {
         "\(repository)#\(number)"
     }
 
+    func matches(normalizedQuery query: String) -> Bool {
+        guard query.isEmpty == false else { return true }
+
+        let parsedTitle = TitleParser.parse(title)
+        let numberQuery = query.hasPrefix("#") ? String(query.dropFirst()) : query
+
+        return String(number).contains(numberQuery)
+            || normalizedSearchText(parsedTitle.title).contains(query)
+            || normalizedSearchText(parsedTitle.issueKey).contains(query)
+    }
+
     func displayState(
         requiredApprovals: Int,
         context: PullRequestListContext
@@ -103,7 +115,7 @@ struct PullRequest: Codable, Hashable, Identifiable, Sendable {
             return authorWaitingDisplayState()
         case .myOpenBlockedOnYou:
             return .changesRequested
-        case .myOpenEnoughApprovals:
+        case .myOpenWaitingToBeMerged, .myOpenOnMergeQueue:
             return .approved
         }
     }
@@ -119,7 +131,7 @@ struct PullRequest: Codable, Hashable, Identifiable, Sendable {
             return true
         case .myOpenWaitingOnReviewers, .myOpenBlockedOnYou:
             return false
-        case .myOpenEnoughApprovals:
+        case .myOpenWaitingToBeMerged, .myOpenOnMergeQueue:
             return true
         }
     }
@@ -172,7 +184,8 @@ struct ReviewBuckets: Codable, Hashable, Sendable {
     let needsReReview: [PullRequest]
     let myOpenWaitingOnReviewers: [PullRequest]
     let myOpenBlockedOnYou: [PullRequest]
-    let myOpenEnoughApprovals: [PullRequest]
+    let myOpenWaitingToBeMerged: [PullRequest]
+    let myOpenOnMergeQueue: [PullRequest]
     let totals: BucketTotals
     let awaitingTruncated: Bool
     let reviewedTruncated: Bool
@@ -185,7 +198,8 @@ struct ReviewBuckets: Codable, Hashable, Sendable {
         needsReReview: [],
         myOpenWaitingOnReviewers: [],
         myOpenBlockedOnYou: [],
-        myOpenEnoughApprovals: [],
+        myOpenWaitingToBeMerged: [],
+        myOpenOnMergeQueue: [],
         totals: BucketTotals(awaiting: 0, reviewed: 0),
         awaitingTruncated: false,
         reviewedTruncated: false,
@@ -204,7 +218,30 @@ struct ReviewBuckets: Codable, Hashable, Sendable {
             needsReReview: needsReReview.filter { $0.isDraft == false },
             myOpenWaitingOnReviewers: myOpenWaitingOnReviewers.filter { $0.isDraft == false },
             myOpenBlockedOnYou: myOpenBlockedOnYou.filter { $0.isDraft == false },
-            myOpenEnoughApprovals: myOpenEnoughApprovals.filter { $0.isDraft == false },
+            myOpenWaitingToBeMerged: myOpenWaitingToBeMerged.filter { $0.isDraft == false },
+            myOpenOnMergeQueue: myOpenOnMergeQueue.filter { $0.isDraft == false },
+            totals: totals,
+            awaitingTruncated: awaitingTruncated,
+            reviewedTruncated: reviewedTruncated,
+            myOpenTruncated: myOpenTruncated
+        )
+    }
+
+    func filtered(matching query: String) -> ReviewBuckets {
+        let normalizedQuery = normalizedSearchText(query)
+        guard normalizedQuery.isEmpty == false else {
+            return self
+        }
+
+        return ReviewBuckets(
+            user: user,
+            host: host,
+            needsReview: needsReview.filter { $0.matches(normalizedQuery: normalizedQuery) },
+            needsReReview: needsReReview.filter { $0.matches(normalizedQuery: normalizedQuery) },
+            myOpenWaitingOnReviewers: myOpenWaitingOnReviewers.filter { $0.matches(normalizedQuery: normalizedQuery) },
+            myOpenBlockedOnYou: myOpenBlockedOnYou.filter { $0.matches(normalizedQuery: normalizedQuery) },
+            myOpenWaitingToBeMerged: myOpenWaitingToBeMerged.filter { $0.matches(normalizedQuery: normalizedQuery) },
+            myOpenOnMergeQueue: myOpenOnMergeQueue.filter { $0.matches(normalizedQuery: normalizedQuery) },
             totals: totals,
             awaitingTruncated: awaitingTruncated,
             reviewedTruncated: reviewedTruncated,
@@ -218,10 +255,17 @@ private extension PullRequestListContext {
         switch self {
         case .needsReview, .needsReReview:
             return true
-        case .myOpenWaitingOnReviewers, .myOpenBlockedOnYou, .myOpenEnoughApprovals:
+        case .myOpenWaitingOnReviewers, .myOpenBlockedOnYou, .myOpenWaitingToBeMerged, .myOpenOnMergeQueue:
             return false
         }
     }
+}
+
+private func normalizedSearchText(_ value: String?) -> String {
+    guard let value else { return "" }
+    return value
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+        .lowercased()
 }
 
 struct PRKey: Codable, Hashable, Sendable {

@@ -14,8 +14,10 @@ filtered to PRs that changed since the user's latest review
 `CHANGES_REQUESTED` and the author has not pushed since
 - **Your PRs waiting on reviewers** — authored PRs that still need approvals
 or another review after a follow-up push
-- **Your PRs with enough approvals** — authored PRs that currently meet the
-configured approval threshold
+- **My PRs waiting to be merged** — authored PRs that currently meet the
+configured approval threshold and are not assigned to MergeQ
+- **My PRs on MergeQ** — authored PRs that currently meet the configured
+approval threshold and are already assigned to MergeQ
 
 It pulls data with a single GitHub GraphQL request (`PendingReviews.graphql`)
 via the token returned from `gh auth token --hostname <host>`, then computes
