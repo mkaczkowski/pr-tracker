@@ -111,7 +111,7 @@ final class ReviewBucketsBuilderTests: XCTestCase {
         XCTAssertFalse(buckets.myOpenTruncated)
     }
 
-    func testReReviewBucketIncludesLatestApprovedReviewWhenPRChanged() throws {
+    func testReReviewBucketExcludesLatestApprovedReviewWhenPRChanged() throws {
         let response = try decodeResponse(
             #"""
             {
@@ -147,7 +147,7 @@ final class ReviewBucketsBuilderTests: XCTestCase {
 
         let graphData = try XCTUnwrap(response.data)
         let buckets = ReviewBucketsBuilder().build(from: graphData, host: "github.com", requiredApprovals: 2)
-        XCTAssertEqual(buckets.needsReReview.map(\.number), [12])
+        XCTAssertTrue(buckets.needsReReview.isEmpty)
     }
 
     func testReReviewBucketExcludesStaleApprovalWhenOtherReviewersAreRequested() throws {
@@ -407,7 +407,7 @@ final class ReviewBucketsBuilderTests: XCTestCase {
         XCTAssertEqual(awaiting.approvals, 0)
     }
 
-    func testAwaitingSortPrioritizesReReviewThenOldestRequest() throws {
+    func testAwaitingSortPrioritizesReReviewThenNewestRequest() throws {
         let response = try decodeResponse(
             #"""
             {
@@ -460,7 +460,7 @@ final class ReviewBucketsBuilderTests: XCTestCase {
 
         let graphData = try XCTUnwrap(response.data)
         let buckets = ReviewBucketsBuilder().build(from: graphData, host: "github.com", requiredApprovals: 2)
-        XCTAssertEqual(buckets.needsReview.map(\.number), [11, 12, 10])
+        XCTAssertEqual(buckets.needsReview.map(\.number), [11, 10, 12])
     }
 
     func testReReviewSortExcludesNonUpdatedAndPrioritizesNewestPush() throws {
@@ -520,7 +520,7 @@ final class ReviewBucketsBuilderTests: XCTestCase {
         XCTAssertFalse(buckets.needsReReview.contains(where: { $0.number == 20 }))
     }
 
-    func testMyOpenSortPrioritizesReReviewThenOldestWaitingThenApprovals() throws {
+    func testMyOpenSortPrioritizesReReviewThenNewestWaitingThenApprovals() throws {
         let response = try decodeResponse(
             #"""
             {
@@ -580,7 +580,7 @@ final class ReviewBucketsBuilderTests: XCTestCase {
 
         let graphData = try XCTUnwrap(response.data)
         let buckets = ReviewBucketsBuilder().build(from: graphData, host: "github.com", requiredApprovals: 2)
-        XCTAssertEqual(buckets.myOpenWaitingOnReviewers.map(\.number), [31, 33, 32, 30])
+        XCTAssertEqual(buckets.myOpenWaitingOnReviewers.map(\.number), [31, 30, 33, 32])
     }
 
     func testMyOpenIncludesChangesRequestedAfterFollowUpPush() throws {
@@ -834,7 +834,7 @@ final class ReviewBucketsBuilderTests: XCTestCase {
         let graphData = try XCTUnwrap(response.data)
         let buckets = ReviewBucketsBuilder().build(from: graphData, host: "github.com", requiredApprovals: 2)
 
-        XCTAssertEqual(buckets.myOpenBlockedOnYou.map(\.number), [401, 402])
+        XCTAssertEqual(buckets.myOpenBlockedOnYou.map(\.number), [402, 401])
         XCTAssertEqual(buckets.myOpenWaitingToBeMerged.map(\.number), [403, 404])
         XCTAssertTrue(buckets.myOpenOnMergeQueue.isEmpty)
 
@@ -875,12 +875,12 @@ final class ReviewBucketsBuilderTests: XCTestCase {
                   "nodes": [
                     {
                       "number": 405,
-                      "title": "Approved then changed",
+                      "title": "Changes requested then changed",
                       "url": "https://github.com/acme/repo/pull/405",
                       "updatedAt": "2026-04-19T11:00:00Z",
                       "author": { "login": "bob" },
                       "repository": { "nameWithOwner": "acme/repo" },
-                      "reviews": { "nodes": [ { "state": "APPROVED", "submittedAt": "2026-04-19T08:00:00Z", "author": { "login": "alice" } } ] },
+                      "reviews": { "nodes": [ { "state": "CHANGES_REQUESTED", "submittedAt": "2026-04-19T08:00:00Z", "author": { "login": "alice" } } ] },
                       "commits": { "nodes": [ { "commit": { "committedDate": "2026-04-19T10:00:00Z" } } ] },
                       "timelineItems": { "nodes": [] }
                     }

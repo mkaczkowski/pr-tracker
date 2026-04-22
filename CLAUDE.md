@@ -9,7 +9,7 @@ action-oriented GitHub PR buckets for the signed-in user:
 
 - **Needs your review** — `user-review-requested:@me`
 - **Needs re-review** — `reviewed-by:@me -review-requested:@me -author:@me`,
-filtered to PRs that changed since the user's latest review
+filtered to PRs that changed since the user's latest non-approval review
 - **Your PRs blocked on you** — latest non-author review is
 `CHANGES_REQUESTED` and the author has not pushed since
 - **Your PRs waiting on reviewers** — authored PRs that still need approvals

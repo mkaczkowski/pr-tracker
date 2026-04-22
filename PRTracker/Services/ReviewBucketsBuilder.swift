@@ -339,6 +339,12 @@ struct ReviewBucketsBuilder: Sendable {
         user: String,
         node: PullRequestNode
     ) -> Bool {
+        // If the viewer's latest submitted review is an approval, treat the PR
+        // as no longer awaiting reviewer action from them.
+        if latestState == .approved {
+            return false
+        }
+
         if hasOutstandingReviewRequests(forSomeoneOtherThan: user, node: node) {
             return false
         }
@@ -413,7 +419,7 @@ struct ReviewBucketsBuilder: Sendable {
         if lhs.prioritizeForReReview != rhs.prioritizeForReReview {
             return lhs.prioritizeForReReview
         }
-        if let decision = preferAscending(lhs.pullRequest.reviewRequestedAt, rhs.pullRequest.reviewRequestedAt) {
+        if let decision = preferDescending(lhs.pullRequest.reviewRequestedAt, rhs.pullRequest.reviewRequestedAt) {
             return decision
         }
         if let decision = preferDescending(lhs.pullRequest.lastCommitDate, rhs.pullRequest.lastCommitDate) {
@@ -429,7 +435,7 @@ struct ReviewBucketsBuilder: Sendable {
         if let decision = preferDescending(lhs.pullRequest.lastCommitDate, rhs.pullRequest.lastCommitDate) {
             return decision
         }
-        if let decision = preferAscending(lhs.pullRequest.reviewRequestedAt, rhs.pullRequest.reviewRequestedAt) {
+        if let decision = preferDescending(lhs.pullRequest.reviewRequestedAt, rhs.pullRequest.reviewRequestedAt) {
             return decision
         }
         if let decision = preferDescending(lhs.pullRequest.updatedAt, rhs.pullRequest.updatedAt) {
@@ -442,23 +448,23 @@ struct ReviewBucketsBuilder: Sendable {
         if lhs.needsReReview != rhs.needsReReview {
             return lhs.needsReReview
         }
-        if let decision = preferAscending(lhs.pullRequest.updatedAt, rhs.pullRequest.updatedAt) {
+        if let decision = preferDescending(lhs.pullRequest.updatedAt, rhs.pullRequest.updatedAt) {
             return decision
         }
         if lhs.pullRequest.approvals != rhs.pullRequest.approvals {
             return lhs.pullRequest.approvals < rhs.pullRequest.approvals
         }
-        if let decision = preferAscending(lhs.pullRequest.lastCommitDate, rhs.pullRequest.lastCommitDate) {
+        if let decision = preferDescending(lhs.pullRequest.lastCommitDate, rhs.pullRequest.lastCommitDate) {
             return decision
         }
         return fallback(lhs.pullRequest, rhs.pullRequest)
     }
 
     private func compareMyOpenBlockedOnYou(_ lhs: MyOpenCandidate, _ rhs: MyOpenCandidate) -> Bool {
-        if let decision = preferAscending(lhs.pullRequest.updatedAt, rhs.pullRequest.updatedAt) {
+        if let decision = preferDescending(lhs.pullRequest.updatedAt, rhs.pullRequest.updatedAt) {
             return decision
         }
-        if let decision = preferAscending(lhs.pullRequest.lastCommitDate, rhs.pullRequest.lastCommitDate) {
+        if let decision = preferDescending(lhs.pullRequest.lastCommitDate, rhs.pullRequest.lastCommitDate) {
             return decision
         }
         return fallback(lhs.pullRequest, rhs.pullRequest)

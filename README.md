@@ -5,7 +5,7 @@ PRTracker is a small macOS menu bar app for staying on top of GitHub pull reques
 It focuses on a few practical things:
 
 - **Needs your review**: PRs where you are currently requested.
-- **Needs re-review**: PRs you reviewed that changed since your review.
+- **Needs re-review**: PRs where your non-approval review is stale after new commits.
 - **Your PRs blocked on you**: authored PRs with requested changes you still need to address.
 - **Your PRs waiting on reviewers**: authored PRs that still need reviewer attention.
 - **Your PRs with enough approvals**: authored PRs that have met the configured approval threshold.
